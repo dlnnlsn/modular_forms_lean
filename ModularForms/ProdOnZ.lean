@@ -1,4 +1,5 @@
 import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Data.Int.Interval
 import Mathlib.Order.Filter.AtTopBot.Defs
 import Mathlib.Topology.Algebra.Group.Defs
@@ -9,12 +10,13 @@ import Mathlib.Topology.Algebra.InfiniteSum.Defs
 
 open Filter Function Topology
 
-variable {α: Type*} [CommMonoid α]
+variable {α: Type*}
+variable [CommMonoid α]
 
 open Classical in
 @[to_additive]
 noncomputable def prod_within_radius (r: ℕ) (S: Set ℤ) (f: ℤ → α): α :=
-  ∏ i ∈ (Finset.Icc (-r: ℤ) r).filter (· ∈ S), f i
+  ∏ i ∈ (Finset.Ico (-r: ℤ) r).filter (· ∈ S), f i
 
 open Classical in
 @[to_additive]
@@ -32,7 +34,7 @@ lemma prod_over_union_within_radius (r: ℕ) {S T: Set ℤ} (h: S ∩ T = ∅) (
 open Classical in
 @[to_additive]
 lemma prod_within_radius_of_top (r: ℕ) (f: ℤ → α):
-    prod_within_radius r ⊤ f = ∏ i ∈ Finset.Icc (-r: ℤ) r, f i := by
+    prod_within_radius r ⊤ f = ∏ i ∈ Finset.Ico (-r: ℤ) r, f i := by
   unfold prod_within_radius
   congr
   apply Finset.filter_true_of_mem (λ _ _ ↦ by trivial)
@@ -42,66 +44,18 @@ lemma prod_within_radius_of_prod (r: ℕ) (S: Set ℤ) (f g: ℤ → α):
     prod_within_radius r S (f * g) = prod_within_radius r S f * prod_within_radius r S g := Finset.prod_mul_distrib
 
 @[to_additive]
-lemma prod_within_radius_of_top_split_neg_nonneg (r: ℕ) (f: ℤ → α):
-    prod_within_radius r ⊤ f = (∏ i ∈ Finset.range r, f (-(i + 1))) * (∏ i ∈ Finset.range (r + 1), f i) := by
-  rw [prod_within_radius_of_top]
-  have := Finset.Ico_union_Ico_eq_Ico
-    (show (-r: ℤ) ≤ 0 from Int.neg_natCast_le_ofNat r 0) (show (0: ℤ) ≤ (r + 1) from Int.zero_le_ofNat (r + 1))
-  rw [show Finset.Icc (-r: ℤ) r = Finset.Ico (-r: ℤ) (r + 1) by rfl]
-  rw [←this]
-  rw [Finset.prod_union]
-  have h_neg: ∏ i ∈ Finset.Ico (-r: ℤ) 0, f i = ∏ i ∈ Finset.range r, f (-(i + 1)) := by
-    rw [Finset.prod_bij (λ r _ ↦ (-r - 1).toNat)]
-    · intro a ha
-      rw [Finset.mem_Ico] at ha
-      rw [Finset.mem_range]
-      omega
-    · intro a₁ ha₁ a₂ ha₂
-      rw [Finset.mem_Ico] at ha₁ ha₂
-      omega
-    · intro b hb
-      use (-b: ℤ) - 1
-      rw [Finset.mem_range] at hb
-      rw [exists_prop, Finset.mem_Ico]
-      omega
-    · intro a ha
-      congr
-      rw [Finset.mem_Ico] at ha
-      omega
-  have h_pos: ∏ i ∈ Finset.Ico (0: ℤ) (r + 1), f i = ∏ i ∈ Finset.range (r + 1), f i := by
-    apply Finset.prod_bij (λ r _ ↦ r.toNat)
-    · intro a ha
-      rw [Finset.mem_Ico] at ha
-      rw [Finset.mem_range]
-      omega
-    · intro a₁ ha₁ a₂ ha₂
-      rw [Finset.mem_Ico] at ha₁ ha₂
-      omega
-    · intro b hb
-      use b
-      rw [exists_prop, Finset.mem_Ico]
-      rw [Finset.mem_range] at hb
-      omega
-    · intro a ha
-      congr
-      rw [Finset.mem_Ico] at ha
-      omega
-  rw [h_neg, h_pos]
-  rw [Finset.disjoint_iff_ne]
-  intro a ha b hb
-  rw [Finset.mem_Ico] at ha hb
-  omega
-
-@[to_additive]
 lemma prod_of_set_eq {β: Type*} {A B: Finset β} {f: β → α} (h: A = B): ∏ i ∈ A, f i = ∏ i ∈ B, f i := by congr
 
 @[to_additive]
 lemma prod_within_radius_of_top_range_div {α: Type*} [CommGroup α] (r: ℕ) (f: ℤ → α):
-    prod_within_radius r ⊤ (λ n ↦ (f n) / (f (n + 1))) = (f (-r: ℤ)) / (f (r + 1)) := by
+    prod_within_radius r ⊤ (λ n ↦ f n / f (n + 1)) = f (-r: ℤ) / f r := by
   rw [prod_within_radius_of_top]
   induction' r with r hr
   simp
-  have h_union: Finset.Icc (-(r + 1): ℤ) (r + 1) = {(-(r + 1): ℤ)} ∪ Finset.Icc (-r: ℤ) r ∪ {((r + 1): ℤ)} := by sorry
+  have h_union: Finset.Ico (-(r + 1): ℤ) (r + 1) = {(-(r + 1): ℤ)} ∪ Finset.Ico (-r: ℤ) r ∪ {(r: ℤ)} := by
+    ext x
+    simp only [Finset.mem_Ico, Finset.mem_union, Finset.mem_singleton]
+    omega
   rw_mod_cast [prod_of_set_eq h_union] 
   rw [Finset.prod_union, Finset.prod_union, hr, Finset.prod_singleton, Finset.prod_singleton]
   rw [Int.neg_ofNat_eq_negSucc_add_one_iff.mpr rfl]
@@ -109,16 +63,19 @@ lemma prod_within_radius_of_top_range_div {α: Type*} [CommGroup α] (r: ℕ) (f
   all_goals {
     rw [Finset.disjoint_iff_ne] 
     intro a ha b hb
-    simp only [Finset.mem_union, Finset.mem_singleton, Finset.mem_Icc] at *
+    simp only [Finset.mem_union, Finset.mem_singleton, Finset.mem_Ico] at *
     omega
   }
 
 lemma prod_within_radius_of_top_range_div₀ {α: Type*} [CommGroupWithZero α] (r: ℕ) (f: ℤ → α) (h: ∀ n, f n ≠ 0):
-    prod_within_radius r ⊤ (λ n ↦ (f n) / (f (n + 1))) = (f (-r: ℤ)) / (f (r + 1)) := by
+    prod_within_radius r ⊤ (λ n ↦ (f n) / (f (n + 1))) = f (-r: ℤ) / f r := by
   rw [prod_within_radius_of_top]
   induction' r with r hr
-  simp
-  have h_union: Finset.Icc (-(r + 1): ℤ) (r + 1) = {(-(r + 1): ℤ)} ∪ Finset.Icc (-r: ℤ) r ∪ {((r + 1): ℤ)} := by sorry
+  simp [h]
+  have h_union: Finset.Ico (-(r + 1): ℤ) (r + 1) = {(-(r + 1): ℤ)} ∪ Finset.Ico (-r: ℤ) r ∪ {(r: ℤ)} := by
+    ext x
+    simp only [Finset.mem_Ico, Finset.mem_union, Finset.mem_singleton]
+    omega
   rw_mod_cast [prod_of_set_eq h_union] 
   rw [Finset.prod_union, Finset.prod_union, hr, Finset.prod_singleton, Finset.prod_singleton]
   rw [Int.neg_ofNat_eq_negSucc_add_one_iff.mpr rfl]
@@ -126,7 +83,7 @@ lemma prod_within_radius_of_top_range_div₀ {α: Type*} [CommGroupWithZero α] 
   all_goals {
     rw [Finset.disjoint_iff_ne] 
     intro a ha b hb
-    simp only [Finset.mem_union, Finset.mem_singleton, Finset.mem_Icc] at *
+    simp only [Finset.mem_union, Finset.mem_singleton, Finset.mem_Ico] at *
     omega
   }
 
@@ -210,8 +167,7 @@ theorem HasProdOnZ.prod_div_range₀ {α: Type*} [CommGroupWithZero α] [Topolog
     HasProdOnZ ⊤ (λ n ↦ f n / f (n + 1)) (a/b) := by
   unfold HasProdOnZ
   simp_rw [prod_within_radius_of_top_range_div₀ _ _ hf]
-  apply Filter.Tendsto.div ha _ hb_ne_zero
-  exact (tendsto_add_atTop_iff_nat 1).mpr hb
+  exact Filter.Tendsto.div ha hb hb_ne_zero
 
 @[to_additive]
 theorem HasProdOnZ.prod_div_range {α: Type*} [CommGroup α] [TopologicalSpace α] [ContinuousMul α] [ContinuousInv α] {f: ℤ → α} {a b: α}
@@ -219,8 +175,7 @@ theorem HasProdOnZ.prod_div_range {α: Type*} [CommGroup α] [TopologicalSpace �
     HasProdOnZ ⊤ (λ n ↦ f n / f (n + 1)) (a/b) := by
   unfold HasProdOnZ
   simp_rw [prod_within_radius_of_top_range_div, div_eq_mul_inv]
-  apply Filter.Tendsto.mul ha
-  exact_mod_cast (tendsto_add_atTop_iff_nat 1).mpr <| Filter.Tendsto.inv hb
+  exact Filter.Tendsto.mul ha (Filter.Tendsto.inv hb)
 
 @[to_additive]
 theorem HasProdOnZ.prod [ContinuousMul α] {f g : ℤ → α} {a b: α} {S: Set ℤ} (hf: HasProdOnZ S f a) (hg: HasProdOnZ S g b):
