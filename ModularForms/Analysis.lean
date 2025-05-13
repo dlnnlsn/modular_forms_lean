@@ -12,31 +12,6 @@ theorem sum_tail_tends_to_zero_of_summable {α: Type*} [AddCommGroup α] [Topolo
   apply Filter.Tendsto.const_sub
   exact Summable.tendsto_sum_tsum_nat h
 
-theorem sum_tail_tends_to_zero_of_summable' {α: Type*} [AddCommGroup α] [TopologicalSpace α] [IsTopologicalAddGroup α] [T2Space α] {f: ℕ → α} (h: Summable f):
-    Tendsto (λ N: ℕ ↦ ∑' i: Set.Ici N, f i) atTop (𝓝 0) := by
-  simp_rw [show ∀ N: ℕ, ∑' i: Set.Ici N, f i = ∑' i: ℕ, f (i + N) by
-    intro N
-    let g: ℕ → ℕ := λ i ↦ i + N
-    have hg: Function.Injective g := λ _ _ h_eq ↦ Nat.add_right_cancel h_eq
-    rw [show Set.Ici N = Set.range g by
-      ext x 
-      constructor
-      intro h_elem
-      rw [Set.mem_Ici] at h_elem
-      obtain ⟨m, hm⟩ := Nat.exists_eq_add_of_le h_elem
-      use m
-      rw [hm, add_comm]
-      intro h_elem
-      obtain ⟨m, hm⟩ := h_elem
-      rw [Set.mem_Ici]
-      unfold g at hm
-      rw [add_comm] at hm
-      exact Nat.le.intro hm
-    ]
-    apply tsum_range f hg  
-  ]
-  exact sum_tail_tends_to_zero_of_summable h
-
 theorem interchange_limit_sum_of_dominated_convergence {α: Type*} [RCLike α] {f: ℕ → ℕ → α} {M: ℕ → ℝ} {f_lim: ℕ → α}
   (h_lim: ∀ k, Tendsto (f k ·) atTop (𝓝 (f_lim k)))
   (h_bound: ∀ k, ∀ n, ‖f k n‖ ≤ M k)
