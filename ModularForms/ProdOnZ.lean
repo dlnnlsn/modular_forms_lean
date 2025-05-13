@@ -145,23 +145,6 @@ theorem HasProdOnZ.prod_const_one (S: Set ℤ): HasProdOnZ S (λ _ ↦ (1: α)) 
   simp_rw [Finset.prod_const_one]
   exact tendsto_const_nhds
 
-open Classical in
-@[to_additive]
-theorem HasProdOnZ.hasProd {S: Set ℤ} {f: ℤ → α} {a: α} (h_nonneg: ∀ s ∈ S, s ≥ 0) (h: HasProdOnZ S f a):
-    HasProd (λ n ↦ if n ∈ S then f n else 1) a := by
-  sorry
-
-@[to_additive]
-theorem hasProdOnZ_of_hasProd {f: ℤ → α} {a: α} (h: HasProd f a): HasProdOnZ ⊤ f a := by
-  sorry
-
-@[to_additive]
-theorem hasProdOnZ_nat_of_hasProd_nat {f: ℤ → α} {a: α} (h: HasProd (λ n: ℕ ↦ f n) a): HasProdOnZ ⊤ f a := by
-  sorry
-
--- @[to_additive]
--- theorem hasProdOnZ_nat_of_hasProd_nat {f: ℤ → α}
-
 theorem HasProdOnZ.prod_div_range₀ {α: Type*} [CommGroupWithZero α] [TopologicalSpace α] [ContinuousMul α] [HasContinuousInv₀ α] {f: ℤ → α} {a b: α}
     (ha: Tendsto (λ n: ℕ ↦ f (-n: ℤ)) atTop (𝓝 a)) (hb: Tendsto (λ n: ℕ ↦ f n) atTop (𝓝 b)) (hf: ∀ n, f n ≠ 0) (hb_ne_zero: b ≠ 0):
     HasProdOnZ ⊤ (λ n ↦ f n / f (n + 1)) (a/b) := by
@@ -211,3 +194,51 @@ notation3 "∏_ℤ "(...)", "r:67:(scoped f => z_prod ⊤ f) => r
 notation3 "∏_ℤ' "(...)", "r:67:(scoped f => z_prod ((⊤: Set ℤ) \ {0}) f) => r
 notation3 "∑_ℤ "(...)", "r:67:(scoped f => z_sum ⊤ f) => r
 notation3 "∑_ℤ' "(...)", "r:67:(scoped f => z_sum ((⊤: Set ℤ) \ {0}) f) => r
+
+open Classical in
+@[to_additive]
+theorem HasProdOnZ.of_prod {S: Set ℤ} {a: α} {f: ℤ → α} (h: HasProd (λ k ↦ if k ∈ S then f k else 1) a): HasProdOnZ S f a := by
+  unfold HasProd at h
+  unfold HasProdOnZ
+  let f' := λ k ↦ if k ∈ S then f k else 1
+  simp_rw [show ∀ r: ℕ, prod_within_radius r S f = ∏ k ∈ Finset.Ico (-r: ℤ) r, f' k by
+    intro r
+    unfold prod_within_radius
+    rw [Finset.prod_ite f (λ _ ↦ 1), Finset.prod_const_one, mul_one]
+  ]
+  rw [atTop_basis.tendsto_iff <| nhds_basis_opens a] at h ⊢
+  intro b b_open_around_a
+  obtain ⟨S, hS⟩ := h b b_open_around_a
+  let R: ℕ := if h_nonempty: S.Nonempty then 1 + (Finset.image Int.natAbs S).max' (Finset.image_nonempty.mpr h_nonempty) else 0
+  have h_contained (r: ℕ) (hr: r ≥ R): S ⊆ Finset.Ico (-r: ℤ) r := by
+    intro x x_elem
+    have h_nonempty: S.Nonempty := Finset.nonempty_of_ne_empty <| Finset.ne_empty_of_mem x_elem
+    have h_x_natAbs: x.natAbs < R := by
+      unfold R
+      simp only [h_nonempty, ↓reduceDIte]
+      have h_elem: x.natAbs ∈ Finset.image Int.natAbs S := Finset.mem_image_of_mem Int.natAbs x_elem
+      have := Finset.le_max' (Finset.image Int.natAbs S) x.natAbs h_elem
+      exact Nat.lt_one_add_iff.mpr this
+    rw [Finset.mem_Ico]
+    omega
+  use R
+  constructor
+  trivial
+  intro r hr
+  exact hS.right (Finset.Ico (-r: ℤ) r) (h_contained r hr)
+
+open Classical in
+@[to_additive]
+theorem MultipliableOnZ.of_multipliable {S: Set ℤ} {f: ℤ → α} (h: Multipliable (λ k ↦ if k ∈ S then f k else 1)): MultipliableOnZ S f :=
+  HasProdOnZ.multipliableOnZ <| HasProdOnZ.of_prod <| Multipliable.hasProd h
+
+open Classical in
+@[to_additive]
+theorem z_prod_eq_tprod_of_multipliable [T2Space α] {S: Set ℤ} {f: ℤ → α} (h: Multipliable (λ k ↦ if k ∈ S then f k else 1)):
+    z_prod S f = ∏' k, if k ∈ S then f k else 1 := by
+  let f' := λ k ↦ if k ∈ S then f k else 1
+  have h_multipliableOnZ: MultipliableOnZ S f := MultipliableOnZ.of_multipliable h
+  have h_hasProd: HasProd f' (∏' k, f' k) := by exact Multipliable.hasProd h
+  have h_hasProdOnZ_prod: HasProdOnZ S f (∏' k, f' k) := by exact HasProdOnZ.of_prod h_hasProd
+  apply HasProdOnZ.z_prod_eq h_hasProdOnZ_prod
+
