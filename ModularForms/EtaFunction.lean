@@ -1,7 +1,7 @@
-import Mathlib
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 
--- open Real Complex UpperHalfPlane SlashAction ModularGroup Matrix MatrixGroups
-open Real Complex UpperHalfPlane Matrix MatrixGroups CongruenceSubgroup ModularForm SlashAction EisensteinSeries
+open Real Complex UpperHalfPlane Matrix MatrixGroups
 
 noncomputable
 def eta (z: ℍ): ℂ := cexp (π * Complex.I * z / 12) * ∏' n: ℕ, (1 - cexp (2 * π * Complex.I * n * z))
