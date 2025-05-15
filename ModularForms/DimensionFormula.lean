@@ -40,7 +40,7 @@ lemma levelOne_rank_of_add_twelve (k: ℤ) (hk: k ≥ -9) (h_even: Even k):
 lemma levelOne_rank_one_of_even_weight_of_lt_twelve (k: ℤ) (h_nonneg: k ≥ 3) (h_upper: k < 12) (h_even: Even k):
   Module.rank ℂ (ModularForm Γ(1) k) = 1 := by
   let m := k - 12; have hm: k = m + 12 := by ring
-  rw [hm] 
+  rw [hm]
   rw [levelOne_rank_of_add_twelve m (by linarith)]
   rw [levelOne_neg_weight_rank_zero (by linarith)]
   exact zero_add 1
@@ -89,3 +89,49 @@ theorem levelOne_weight_k_rank' (k: ℤ): Module.rank ℂ (ModularForm Γ(1) k) 
       linarith
       have := Int.even_iff.mp h_even
       apply Int.even_iff.mpr (by omega)
+
+
+
+
+-- ## My code now
+
+lemma bdd_at_infty_of_zero_at_infty (f : CuspForm Γ k) : ∀ A : SL(2, ℤ), IsBoundedAtImInfty (f ∣[k] A) := by
+  intro A
+  have h₁ : IsZeroAtImInfty (f ∣[k] A) := by
+    apply CuspForm.zero_at_infty' f
+  rw [UpperHalfPlane.isBoundedAtImInfty_iff]
+  rw [UpperHalfPlane.isZeroAtImInfty_iff] at h₁
+  use 1
+  apply h₁ _ _
+  linarith
+
+instance coe_CuspForm {k : ℤ} {Γ : Subgroup SL(2, ℤ)} (f : CuspForm Γ k) : ModularForm Γ k where
+  toFun := f
+  slash_action_eq' := by apply SlashInvariantForm.slash_action_eq'
+  holo' := by apply CuspForm.holo'
+  bdd_at_infty' := by apply bdd_at_infty_of_zero_at_infty
+
+def coe_Hom : CuspForm Γ k  →+ ModularForm Γ k where
+  toFun := coe_CuspForm
+  map_zero' := by rfl
+  map_add' := by intro f g ; rfl
+
+def coeHom' : CuspForm Γ k →[ℂ] ModularForm Γ k where
+  toFun := coe_Hom
+  map_smul' := by intro c f ; rfl
+
+instance CuspForm_Subspace (Γ : Subgroup SL(2, ℤ)) (k : ℤ): Submodule ℂ (ModularForm Γ k) where
+  carrier := Set.range coeHom'
+  add_mem' := by
+    intro f g h h₁
+    simp ; simp at h ; simp at h₁
+    rcases h with ⟨f1, hf⟩ ; rcases h₁ with ⟨g1, hg⟩
+    use (f1 + g1)
+    rw [← hf,← hg]
+    rfl
+  zero_mem' := by simp ; use 0 ; rfl
+  smul_mem' := by
+    intro c f h
+    simp ; simp at h
+    rcases h with ⟨g, h₁⟩; use (c • g)
+    simp ; rw [h₁]
