@@ -23,7 +23,6 @@ variable {z : ℍ}
 
 local notation "I∞" => comap Complex.im atTop
 local notation "𝕢" => Periodic.qParam
-
 notation "i" => Complex.I
 
 instance fintoprod : (Fin 2 → ℤ) ≃ ℤ × ℤ where
@@ -38,25 +37,77 @@ instance fintoprod : (Fin 2 → ℤ) ≃ ℤ × ℤ where
       subst h
       simp_all only [Fin.isValue]
     next h =>
-      have : b = 1 := by sorry
+      have : b = 1 := by sorry --trivial
       rw [this]
   right_inv := by
     intro v
     simp_all only [Fin.isValue, ↓reduceIte, one_ne_zero, Prod.mk.eta]
 
-instance gammaset {k : ℕ} (a : Fin 2 → ZMod 1) : gammaSet 1 a = {fintoprod.invFun (x : ℤ × ℤ) | x ≠ 0} where
-  toFun := fun v => (v (0 : Fin 2), v (1 : Fin 2 ))
-  invFun := fun v => fun x => if x = 0 then v 0 else v 1
-  left_inv := sorry
-  right_inv := sorry
+@[simp]
+lemma gammaset_equiv {k : ℕ} (a : Fin 2 → ZMod 1) : gammaSet 1 a = {fintoprod.invFun (x : ℤ × ℤ) | x ≠ 0} := by
+  ext v
+  constructor
+  · intro h
+    simp only [fintoprod]
+    convert h
+    simp only [gammaSet]
+    ext v₁
+    constructor
+    · intro h₁
+      sorry
+    sorry
+
+  sorry
+
+def nonzero_pairs := {x : ℤ × ℤ | x ≠ 0}
+
+@[simp]
+lemma anotherequiv : nonzero_pairs = {fintoprod.toFun (fintoprod.invFun (x : ℤ × ℤ)) | x ≠ 0} := by
+  simp [fintoprod]
+  rfl
+lemma anotherequiv2 {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
+nonzero_pairs = fintoprod '' gammaSet 1 a := by convert gammaset_equiv ; sorry ; apply k
+
+lemma eisensteinSeries_as_SumOver_ℤ_ℤ {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
+eisensteinSeries a k = fun z : ℍ => ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k := by
+  ext τ
+  unfold eisensteinSeries eisSummand
+  simp_all only [PNat.val_ofNat, Fin.isValue, zpow_neg, zpow_natCast]
+  rw [anotherequiv2 a]
+  symm
+  convert @tsum_image ℂ _ _ _ _ fintoprod ((fun x ↦  1 / x.1 * τ + x.2) ^ k) (gammaSet 1 a)
+  simp_all only [one_div, Fin.isValue, Pi.pow_apply]
+  apply Iff.intro
+  · intro a_1 hg
+    simp_all only [fintoprod, Equiv.coe_fn_mk]
+    norm_cast at a_1
+    field_simp at a_1
+    norm_cast at a_1
+    norm_cast
+    convert a_1
+    · norm_cast
+      sorry --weird coercion problem
+    · sorry --same weird coercion problem
+  · intro a_1
+    sorry
+  · sorry
+  · sorry
+  · apply k
+
+lemma sumsplitintwo : (fun z : ℍ => ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k) =
+fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k:ℤ)) + ∑' y : ℕ, ∑' x : ℤ, ((y + 1)* (z : ℂ) + x) ^ (-(k:ℤ)) := by
+  simp [nonzero_pairs]
+
+  sorry
 
 lemma eisensteinSeries_expand {k : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+)) :
 eisensteinSeries a k  = fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k:ℤ)) + ∑' y : ℕ, ∑' x : ℤ, ((y + 1)* (z : ℂ) + x) ^ (-(k:ℤ)):= by
   ext z
   unfold eisensteinSeries eisSummand
   simp_all only [PNat.val_ofNat, Fin.isValue, zpow_neg, zpow_natCast]
-  unfold tsum
-  --apply gammaset
+  rw [gammaset_equiv]
+  simp only [fintoprod]
+  sorry
   sorry
 
 theorem cotagent_Formula_HasSum: HasSum (fun (n : ℕ) => 1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by
@@ -269,7 +320,7 @@ lemma coe_hom_surj (f : ModularForm Γ k) (finCuspSub : f ∈ (CuspForm_Subspace
 
 open Classical
 
-
+noncomputable
 instance isom (Γ : Subgroup SL(2, ℤ)) (k : ℤ) :
   (CuspForm Γ k) ≃ₗ[ℂ] CuspForm_Subspace Γ k where
     toFun := fun f => ⟨coe_Hom f , coee⟩
@@ -509,7 +560,7 @@ noncomputable def eisensteincoeff {k : ℕ} : ℕ → ℂ :=
   fun n => if n = 0 then (- (2 * π * i) ^ k * (bernoulli' k) / Nat.factorial k)
   else (2 * π * i) ^ k * (k - 1).factorial ^ (-(1 : ℤ)) * ∑' (m : {s | s ∣ n }), (m : ℂ) ^ (k - 1)
 
-lemma eisensteinSeries_is_tsum_eisensteincoeff {k m : ℕ} (hk : 3 ≤ (k : ℤ))
+lemma eisensteinSeries_is_tsum_eisensteincoeff {k m : ℕ} (hk : 3 ≤ (k : ℤ)) --here we use all the tsum stuff above
  (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
  eisensteinSeries_MF hk a z = (∑' (n : ℕ), @eisensteincoeff k n • 𝕢 1 z ^ n) := by sorry
 
@@ -526,6 +577,7 @@ lemma obvsthing7 {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ
   subst x
   simp_all only [Nat.cast_mul, Nat.cast_ofNat, smul_eq_mul, mem_map, mem_atTop_sets, ge_iff_le, Finset.le_eq_subset,
     Set.mem_preimage]
+
   sorry
   assumption
 
