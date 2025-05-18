@@ -40,26 +40,6 @@ theorem Complex.euler_sin_tprod (z : ℂ) :
   have h_sin_prod := h_sinc_prod.tendsto_prod_nat.const_mul (π * z)
   exact tendsto_nhds_unique (Complex.tendsto_euler_sin_prod z) h_sin_prod
 
-theorem tendsto_locally_uniformly_on_atTop_iff {α β ι: Type*} [TopologicalSpace α] [MetricSpace β] [Preorder ι] [IsDirected ι (λ x₁ x₂ ↦ x₁ ≤ x₂)] [Nonempty ι] {F: ι → α → β} {f: α → β} {S: Set α}
-    (h: ∀ ε, 0 < ε → ∀ x ∈ S, ∃ t ∈ 𝓝[S] x, ∃ N: ι, ∀ n ≥ N, ∀ y ∈ t, dist (f y) (F n y) < ε):
-    TendstoLocallyUniformlyOn F f atTop S := by
-  unfold TendstoLocallyUniformlyOn
-  simp_rw [eventually_atTop]
-  let P: Set (β × β) → Prop := λ u ↦ ∀ x ∈ S, ∃ t ∈ 𝓝[S] x, ∃ a, ∀ b ≥ a, ∀ y ∈ t, (f y, F b y) ∈ u
-  apply (Metric.uniformity_basis_dist.forall_iff (P := P) _).mpr
-  unfold P
-  simp_rw [Set.mem_setOf_eq]
-  exact h
-  unfold P
-  intro T₁ T₂ h_subset hT₁ x hx
-  obtain ⟨t, ⟨ht_neighborhood, ⟨a, ha⟩⟩⟩ := hT₁ x hx
-  use t
-  constructor
-  exact ht_neighborhood
-  use a
-  intro b hb y hy
-  exact h_subset <| ha b hb y hy
-
 theorem tendsto_locally_uniformly_euler_sin_prod:
     TendstoLocallyUniformlyOn (fun s : Finset ℕ ↦ fun z: ℂ ↦ π * z * ∏ k ∈ s, (1 - z^2 / (k + 1)^2))
     (fun z ↦ sin (π * z)) atTop ⊤ := by
@@ -92,7 +72,3 @@ theorem cotangent_dirichlet_expansion (z: ℍ): cot z = -Complex.I - 2 * π * Co
 
 theorem cotangent_dirichlet_expansion' (z: ℂ) (h: z.im > 0): cot z = -Complex.I - 2 * π * Complex.I * ∑' d: ℕ, Complex.exp (2 * π * Complex.I * (d + 1) * z) :=
   cotangent_dirichlet_expansion { val := z, property := h }
-
-example (f : ℂ → ℂ) : TendstoUniformly (fun (n : ℕ) ↦ f) f atTop := by
-  refine Metric.tendstoUniformly_iff.mpr ?_
-  aesop
