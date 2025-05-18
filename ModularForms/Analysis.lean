@@ -4,6 +4,7 @@ import Mathlib.Analysis.NormedSpace.FunctionSeries
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Data.Complex.Exponential
 import Mathlib.Topology.Instances.ENNReal.Lemmas
+import Mathlib.Topology.MetricSpace.Pseudo.Defs
 
 open Filter Topology Metric
 
@@ -307,3 +308,65 @@ theorem TendstoUniformlyOn.of_prod_of_norm_bounded_of_complete {α R : Type*} [N
   have hf := Multipliable.of_norm_bounded_of_complete hu hfu
   exact TendstoUniformlyOn.of_prod_of_norm_bounded hu hfu hf
 
+theorem TendstoUniformlyOn.mul₀_of_bounded {α ι R : Type*} [TopologicalSpace α] [NormedRing R] 
+    {F G : ι → α → R} {f g : α → R} {l : Filter ι} {s : Set α} 
+    (hf: TendstoUniformlyOn F f l s) (hg: TendstoUniformlyOn G g l s)
+    (hf_bounded : ∃ C, ∀ x ∈ s, ‖f x‖ ≤ C) (hg_bounded : ∃ C, ∀ x ∈ s, ‖g x‖ ≤ C) :
+    TendstoUniformlyOn (fun i x ↦ (F i x) * (G i x)) (f * g) l s := by
+  by_cases s_nonempty : s.Nonempty
+  obtain ⟨f_bound, hf_bound⟩ := hf_bounded
+  obtain ⟨g_bound, hg_bound⟩ := hg_bounded
+  have f_bound_nonneg : 0 ≤ f_bound := le_trans (norm_nonneg _) <|
+    hf_bound s_nonempty.choose s_nonempty.choose_spec
+  have g_bound_nonneg : 0 ≤ g_bound := le_trans (norm_nonneg _) <|
+    hg_bound s_nonempty.choose s_nonempty.choose_spec
+  rw [Metric.tendstoUniformlyOn_iff] at hf hg ⊢
+  intro ε εpos
+  let εg := ε/(2 * (f_bound + 1)) 
+  let εf := ε/(2 * (εg + g_bound))
+  filter_upwards [hf εf (by positivity), hg εg (by positivity)] with n hf hg x hx 
+  simp_rw [dist_eq_norm] at hf hg ⊢
+  calc
+    ‖(f * g) x - F n x * G n x‖ = ‖f x * (g x - G n x) + (f x - F n x) * G n x‖ := by
+      rw [mul_sub, sub_eq_add_neg _ (f x * _), add_assoc, sub_mul, sub_eq_add_neg (_ * G n x) _,
+          ←add_assoc (-_), neg_add_cancel, zero_add, ←sub_eq_add_neg]
+      rfl
+    _ ≤ ‖f x‖ * ‖g x - G n x‖ + ‖f x - F n x‖ * ‖G n x‖ :=
+      le_trans (norm_add_le _ _) (add_le_add (norm_mul_le _ _) (norm_mul_le _ _))
+    _ < (f_bound + 1) * εg + εf * (‖G n x - g x‖ + ‖g x‖) := by
+      apply add_lt_add_of_lt_of_le
+      exact mul_lt_mul_of_nonneg (by linarith [hf_bound x hx]) (hg x hx)
+        (norm_nonneg _) (norm_nonneg _) 
+      refine mul_le_mul_of_nonneg (le_of_lt <| hf x hx) ?_ (norm_nonneg _) (by positivity)
+      convert norm_add_le (G n x - g x) (g x)
+      exact Eq.symm <| sub_add_cancel (G n x) (g x)
+    _ ≤ (f_bound + 1) * εg + εf * (εg + g_bound) := by
+      apply add_le_add_left
+      apply mul_le_mul_of_nonneg_left _ (by positivity)
+      apply add_le_add _ (hg_bound x hx)
+      rw [norm_sub_rev]
+      exact le_of_lt <| hg x hx
+    _ = ε := by
+      unfold εf εg
+      field_simp
+      ring 
+  unfold TendstoUniformlyOn
+  replace s_nonempty : s = ∅ := Set.not_nonempty_iff_eq_empty.mp s_nonempty
+  aesop
+
+theorem TendstoUniformlyOn.mul₀_of_continuousOn_of_compact {α ι R : Type*} [TopologicalSpace α]
+    [NormedRing R] {F G : ι → α → R} {f g : α → R} {l : Filter ι} {s : Set α} 
+    (hf: TendstoUniformlyOn F f l s) (hg: TendstoUniformlyOn G g l s)
+    (hf_cont : ContinuousOn f s) (hg_cont : ContinuousOn g s) (h_compact : IsCompact s) :
+    TendstoUniformlyOn (fun i x ↦ (F i x) * (G i x)) (f * g) l s :=
+  TendstoUniformlyOn.mul₀_of_bounded hf hg (h_compact.exists_bound_of_continuousOn hf_cont)
+    (h_compact.exists_bound_of_continuousOn hg_cont)
+
+theorem TendstoUniformly.of_const {α ι R : Type*} [UniformSpace R] (f : α → R) (l : Filter ι) :
+    TendstoUniformly (fun (_ : ι) ↦ f) f l := by
+  rw [tendstoUniformly_iff_tendsto, tendsto_prod_iff]
+  exact fun _ h ↦ ⟨⊤, ⟨univ_mem, ⟨⊤, ⟨fun _ ↦ trivial, fun _ _ _ _ ↦ mem_uniformity_of_eq h rfl⟩⟩⟩⟩
+
+theorem TendstoUniformlyOn.of_const {α ι R : Type*} [UniformSpace R] (f : α → R) (l : Filter ι)
+    (s : Set α) : TendstoUniformlyOn (fun (_ : ι) ↦ f) f l s :=
+  (TendstoUniformly.of_const f l).tendstoUniformlyOn
