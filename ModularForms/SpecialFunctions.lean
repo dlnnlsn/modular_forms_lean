@@ -1,3 +1,6 @@
+import Mathlib.Algebra.Polynomial.Basic
+import Mathlib.Analysis.Asymptotics.Defs
+import Mathlib.Analysis.Complex.LocallyUniformLimit
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
 import Mathlib.Analysis.PSeries
 import Mathlib.Analysis.SpecificLimits.RCLike
@@ -9,10 +12,11 @@ import Mathlib.Topology.Algebra.InfiniteSum.UniformOn
 import Mathlib.Topology.Defs.Filter
 import Mathlib.Data.Complex.Trigonometric
 import ModularForms.Analysis
+import ModularForms.Asymptotics
 
 open Real Complex UpperHalfPlane Filter Function Topology
 
-theorem multipliableLocallyUniformlyOn_euler_sinc_prod:
+theorem multipliableLocallyUniformlyOn_euler_sinc_prod :
     MultipliableLocallyUniformlyOn (fun n : ℕ ↦ fun z : ℂ ↦ 1 - z^2 / (n + 1)^2) ⊤ := by
   use (fun z ↦ ∏' k : ℕ, (1 - z^2 / (k + 1)^2))
   apply (tendstoLocallyUniformlyOn_iff_forall_isCompact _).mpr
@@ -40,8 +44,8 @@ theorem Complex.euler_sin_tprod (z : ℂ) :
   have h_sin_prod := h_sinc_prod.tendsto_prod_nat.const_mul (π * z)
   exact tendsto_nhds_unique (Complex.tendsto_euler_sin_prod z) h_sin_prod
 
-theorem tendsto_locally_uniformly_euler_sin_prod:
-    TendstoLocallyUniformlyOn (fun s : Finset ℕ ↦ fun z: ℂ ↦ π * z * ∏ k ∈ s, (1 - z^2 / (k + 1)^2))
+theorem tendsto_locally_uniformly_euler_sin_prod :
+    TendstoLocallyUniformlyOn (fun (s : Finset ℕ) (z : ℂ) ↦ π * z * ∏ k ∈ s, (1 - z^2 / (k + 1)^2))
     (fun z ↦ sin (π * z)) atTop ⊤ := by
   have h_top_open : IsOpen (⊤ : Set ℂ) := by simp
   apply (tendstoLocallyUniformlyOn_iff_forall_isCompact h_top_open).mpr
@@ -55,16 +59,165 @@ theorem tendsto_locally_uniformly_euler_sin_prod:
   filter_upwards with n
   exact continuousOn_finset_prod _ fun i _ ↦ Continuous.continuousOn (by continuity)
 
-theorem cotangent_expansion (z: ℂ) (h: ¬∃ n: ℤ, z = n): π * cot (π * z) = 1/z + ∑' k: ℕ, (1/(z + (k + 1)) + 1/(z - (k + 1))) := by sorry
+lemma eventually_ne_atTop {α : Type*} [RCLike α] (z : α) : ∀ᶠ n : ℕ in atTop, (n : α) ≠ z := by
+  obtain ⟨N, hN⟩ := exists_nat_gt (‖z‖)
+  filter_upwards [Filter.eventually_ge_atTop N] with n hn heq
+  apply congrArg norm at heq
+  rw [RCLike.norm_natCast] at heq
+  apply (Nat.cast_le (α := ℝ)).mpr at hn
+  linarith
+
+lemma cotangent_terms_isBigO (z : ℂ) : (fun n : ℕ ↦ 1/(z + (n + 1)) + 1/(z - (n + 1)))
+    =O[atTop] (fun n : ℕ ↦ 1/((n : ℝ) + 1)^2) := by
+  have h_eventually_plus_nonzero : ∀ᶠ n : ℕ in atTop, (z + (n + 1)) ≠ 0 := by
+    filter_upwards [eventually_ne_atTop (-(z + 1))] with n hn heq
+    rw [←add_assoc, add_comm z, add_assoc] at heq
+    exact hn <|  eq_neg_of_add_eq_zero_left heq
+  have h_eventually_minus_nonzero : ∀ᶠ n : ℕ in atTop, (z - (n + 1)) ≠ 0 := by
+    filter_upwards [eventually_ne_atTop (z - 1)] with n hn heq
+    apply Lean.Grind.CommRing.sub_eq_zero_iff.mp at heq 
+    exact hn <| Eq.symm <| Lean.Grind.CommRing.sub_eq_iff.mpr heq
+  have h_eventually_prod_nonzero : ∀ᶠ n : ℕ in atTop, (n + 1)^2 - z^2 ≠ 0 := by
+    filter_upwards [h_eventually_plus_nonzero, h_eventually_minus_nonzero] with n hnp hnm heq
+    replace heq : z^2 - (n + 1)^2 = 0 := by apply zero_eq_neg.mp ; rw [←heq] ; ring
+    rw [sq_sub_sq] at heq
+    rcases mul_eq_zero.mp heq <;> trivial
+  have h_eventually_eq : ∀ᶠ n : ℕ in atTop,
+      1/(z + (n + 1)) + 1/(z - (n + 1)) = (-2 * z) * 1 / ((n + 1)^2 - z^2) := by
+    filter_upwards [h_eventually_plus_nonzero, h_eventually_minus_nonzero,
+                    h_eventually_prod_nonzero] with _ _ _ _
+    field_simp
+    ring
+  refine Filter.EventuallyEq.trans_isBigO h_eventually_eq ?_
+  refine Asymptotics.IsBigO.const_mul_left ?_ _
+  rw [Asymptotics.IsBigO_def]
+  use (4 : ℝ)/3
+  rw [Asymptotics.isBigOWith_iff]
+  obtain ⟨N, hN⟩ := exists_nat_ge (2 * ‖z‖)
+  filter_upwards [h_eventually_prod_nonzero, eventually_ge_atTop N] with n hprod hn
+  apply (Nat.cast_le (α := ℝ)).mpr at hn
+  apply (mul_le_mul_iff_of_pos_left (show ‖(n + 1)^2 - z^2‖ > 0 by positivity)).mp
+  apply (mul_le_mul_iff_of_pos_left (show 3 * ((n : ℝ) + 1)^2 / 4 > 0 by positivity)).mp
+  have := calc
+    ‖(n + 1)^2 - z^2‖ ≥ ‖((n : ℂ) + 1)^2‖ - ‖z^2‖ := ge_iff_le.mpr <| norm_sub_norm_le _ _
+    _ = ((n : ℝ) + 1)^2 - ‖z^2‖ := by norm_cast
+    _ ≥ ((n : ℝ) + 1)^2 - ((n : ℝ) + 1)^2 / 4 := by
+      apply ge_iff_le.mpr
+      apply sub_le_sub_left
+      rw [norm_pow] 
+      convert (sq_le_sq₀ ?_ ?_).mpr (show ‖z‖ ≤ ((n : ℝ) + 1) / 2 by linarith)
+      ring
+      all_goals positivity
+    _ = (3 : ℝ) * (n + 1)^2 / 4 := by ring
+  exact le_trans (le_of_eq_of_le (by field_simp; try ring) this)
+                 (le_of_eq       (by field_simp; try ring))
+
+theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
+    π * cot (π * z) = 1/z + ∑' k : ℕ, (1/(z + (k + 1)) + 1/(z - (k + 1))) := by
+  have h_top_open : IsOpen (⊤ : Set ℂ) := by simp
+  let z_wrapped : (⊤ : Set ℂ) := { val := z, property := by trivial }
+  have h_differentiable (n : ℕ) : Differentiable ℂ (fun (z : ℂ) ↦ 1 - z^2 / (n + 1)^2) :=
+    Differentiable.const_sub (Differentiable.div_const (differentiable_pow _) _) _
+  have h_prod_differentiable (s : Finset ℕ) : Differentiable ℂ
+      (fun z: ℂ ↦ ∏ k ∈ s, (1 - z^2 / (k + 1)^2)) := 
+    Differentiable.finset_prod fun n _ ↦ h_differentiable n
+  have h_prod_eventually_differentiable : ∀ᶠ (s : Finset ℕ) in atTop, DifferentiableOn ℂ
+      (fun z: ℂ ↦ π * z * ∏ k ∈ s, (1 - z^2 / (k + 1)^2)) ⊤ :=  by
+    filter_upwards with s
+    simp_rw [mul_assoc]
+    apply DifferentiableOn.const_mul
+    exact DifferentiableOn.mul differentiableOn_id (h_prod_differentiable s).differentiableOn
+  have h_sin_nonzero : Complex.sin (π * z) ≠ 0 := by
+    rw [mul_comm]
+    refine Complex.sin_ne_zero_iff.mpr fun n heq ↦ ?_
+    apply mul_right_cancel₀ (ofReal_ne_zero.mpr pi_ne_zero) at heq
+    exact h n heq
+  have hlog_deriv := Complex.logDeriv_tendsto _ _ h_top_open
+    z_wrapped tendsto_locally_uniformly_euler_sin_prod 
+    h_prod_eventually_differentiable h_sin_nonzero
+  rw [show logDeriv (fun z ↦ Complex.sin (π * z)) z = π * Complex.cot (π * z) by
+    have hlog_deriv := logDeriv_comp (x := z) (Complex.differentiableAt_sin)
+      ((differentiableAt_const (π : ℂ)).mul differentiableAt_id)
+    simp only [id_eq, Complex.logDeriv_sin] at hlog_deriv
+    rw [mul_comm] at hlog_deriv
+    rw [show deriv (fun y : ℂ ↦ π * y) z = (π : ℂ) by
+      conv_rhs => rw [←mul_one π]
+      apply HasDerivAt.deriv
+      rw [ofReal_mul, ofReal_one]
+      apply HasDerivAt.const_mul
+      exact hasDerivAt_id z
+    ] at hlog_deriv
+    exact hlog_deriv
+  ] at hlog_deriv
+  refine tendsto_nhds_unique hlog_deriv ?_
+  have hprod_terms_differentiable (k : ℕ) :
+      HasDerivAt (fun z : ℂ ↦ 1 - z^2 / (k + 1)^2) (-(2 * z / (k + 1)^2)) z := by
+    apply HasDerivAt.const_sub
+    apply HasDerivAt.div_const
+    convert hasDerivAt_pow 2 z
+    rw [Nat.add_one_sub_one, pow_one]
+  have hadd_nonzero (k : ℕ) : z + (k + 1) ≠ 0 := fun heq ↦ by
+    apply eq_neg_of_add_eq_zero_left at heq
+    have hneq := h (-(k + 1))
+    push_cast at hneq
+    exact hneq heq
+  have hsub_nonzero (k : ℕ) : z - (k + 1) ≠ 0 := fun heq ↦ by
+    apply Lean.Grind.CommRing.sub_eq_zero_iff.mp at heq
+    have hneq := h (k + 1)
+    push_cast at hneq
+    exact hneq heq
+  have hprod_terms_nonzero (k : ℕ) : 1 - z^2 / (k + 1)^2 ≠ 0 := fun heq ↦ by
+    apply congrArg (fun z : ℂ ↦ (k + 1)^2 * z) at heq
+    field_simp [Nat.cast_add_one_ne_zero k] at heq
+    rw [sq_sub_sq] at heq
+    rcases mul_eq_zero.mp heq with heq | heq
+    apply hadd_nonzero k
+    rwa [add_comm] 
+    apply hsub_nonzero k
+    apply congrArg (-·) at heq
+    rw [←Lean.Grind.CommRing.neg_zero, ←heq]
+    ring
+  suffices hlog_deriv : ∀ s : Finset ℕ,
+      logDeriv (fun z : ℂ ↦ π * z * ∏ k ∈ s, (1 - z^2 / (k + 1)^2)) z_wrapped =
+      1/z + ∑ k ∈ s, (1 / (z + (k + 1)) + 1 / (z - (k + 1))) by
+    simp_rw [hlog_deriv] 
+    apply Tendsto.const_add
+    apply Summable.hasSum
+    refine summable_of_isBigO_nat ?_ (cotangent_terms_isBigO z)
+    have := (summable_nat_add_iff 1).mpr (Real.summable_nat_rpow.mpr (show -2 < -1 by norm_num))
+    convert this using 2 with n
+    rw [rpow_neg (by positivity), inv_eq_one_div]
+    field_simp
+  intro s
+  simp_rw [mul_assoc]
+  rw [logDeriv_const_mul _ _ (ofReal_ne_zero.mpr pi_ne_zero)]
+  rw [logDeriv_mul z]
+  simp_rw [←Function.id_def]
+  rw [logDeriv_id]
+  apply congrArg
+  rw [logDeriv_prod]
+  suffices hlog_deriv : ∀ k : ℕ, logDeriv (fun z : ℂ ↦ 1 - z^2 / (k + 1)^2) z
+      = 1/(z + (k + 1)) + 1/(z - (k + 1)) by simp_rw [hlog_deriv]
+  intro k
+  simp only [logDeriv, Pi.div_apply, (hprod_terms_differentiable k).deriv, one_div]
+  apply (div_eq_iff (hprod_terms_nonzero k)).mpr
+  field_simp [hadd_nonzero k, hsub_nonzero, Nat.cast_add_one_ne_zero k]
+  ring
+  exact fun k _ ↦ hprod_terms_nonzero k
+  exact fun k _ ↦ (hprod_terms_differentiable k).differentiableAt
+  convert h 0
+  exact Eq.symm Lean.Grind.CommRing.intCast_zero
+  apply Finset.prod_eq_zero_iff.not.mpr
+  push_neg
+  exact fun k _ ↦ hprod_terms_nonzero k
+  exact differentiableAt_id
+  exact DifferentiableAt.finset_prod fun k _ ↦ (hprod_terms_differentiable k).differentiableAt
 
 theorem cotangent_expansion_H (z: ℍ): π * cot (π * z) = 1/z + ∑' k: ℕ, (1/((z: ℂ) + (k + 1)) + 1/(z - (k + 1))) := by
-  have h_non_int: ¬∃ n: ℤ, (z: ℂ) = n := by
-    rintro ⟨n, h_eq⟩
-    replace h_eq: (z: ℂ).im = (n: ℂ).im := congrArg Complex.im h_eq
-    rw [coe_im, intCast_im] at h_eq
-    have h_im_pos: z.im > 0 := im_pos z
-    rw [h_eq] at h_im_pos
-    apply (lt_self_iff_false 0).mp h_im_pos
+  have h_non_int : ∀ n : ℤ, (z : ℂ) ≠ n := fun n heq ↦ by
+    apply congrArg Complex.im at heq
+    rw [coe_im, intCast_im] at heq
+    exact (lt_self_iff_false 0).mp <| lt_of_lt_of_eq (im_pos z) heq
   exact cotangent_expansion z h_non_int
 
 theorem cotangent_dirichlet_expansion (z: ℍ): cot z = -Complex.I - 2 * π * Complex.I * ∑' d: ℕ, Complex.exp (2 * π * Complex.I * (d + 1) * z) := by
@@ -72,3 +225,4 @@ theorem cotangent_dirichlet_expansion (z: ℍ): cot z = -Complex.I - 2 * π * Co
 
 theorem cotangent_dirichlet_expansion' (z: ℂ) (h: z.im > 0): cot z = -Complex.I - 2 * π * Complex.I * ∑' d: ℕ, Complex.exp (2 * π * Complex.I * (d + 1) * z) :=
   cotangent_dirichlet_expansion { val := z, property := h }
+
