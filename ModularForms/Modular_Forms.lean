@@ -7,6 +7,7 @@ import Mathlib.NumberTheory.ModularForms.EisensteinSeries.Basic
 import Mathlib.NumberTheory.ModularForms.QExpansion
 import Mathlib.Algebra.DirectSum.Algebra
 import Mathlib.NumberTheory.Bernoulli
+import Mathlib.NumberTheory.ZetaValues
 
 open EisensteinSeries CongruenceSubgroup
 open ModularForm Complex Filter UpperHalfPlane Function
@@ -24,6 +25,8 @@ variable {z : ℍ}
 local notation "I∞" => comap Complex.im atTop
 local notation "𝕢" => Periodic.qParam
 notation "i" => Complex.I
+
+
 
 instance fintoprod : (Fin 2 → ℤ) ≃ ℤ × ℤ where
   toFun := fun v => (v 0, v 1)
@@ -87,11 +90,6 @@ refine Injective.injOn ?_
 intro v v₁ h
 simp_all only [Equiv.toFun_as_coe, EmbeddingLike.apply_eq_iff_eq]
 
-
-
-theorem Dontforgetwhatcardinalityis : {x : ℤ × ℤ | x ≠ 0} =
-{x : ℤ × ℤ | ∃ c : ℤ, ∃ d : ℤ, IsCoprime c d ∧ ∃ N : ℤ, (x.1,x.2) = (N * c,N * d)} := by
-  sorry
 @[simp]
 lemma factoroutGCD {k : ℕ} {m n : ℤ} {mornne0 : m ≠ 0 ∨ n ≠ 0}: (m * (z : ℂ) + n) ^ (-k : ℤ) =
 (Int.gcd m n) ^ (- k : ℤ) * (m / Int.gcd m n * (z : ℂ) + n / Int.gcd m n) ^ (-k : ℤ) := by
@@ -105,19 +103,8 @@ cases mornne0 with
   simp_all only [ne_eq, pow_eq_zero_iff', Nat.cast_eq_zero, Int.gcd_eq_zero_iff, and_false, false_and,
     not_false_eq_true, mul_inv_cancel_right₀]
 
-example {m n : ℕ}: IsCoprime m n → m ≠ 0 ∨ n ≠ 0 := by
-intro a_1
-simp_all only [Nat.isCoprime_iff, ne_eq]
-cases a_1 with
-| inl h =>
-  subst h
-  simp_all only [one_ne_zero, not_false_eq_true, true_or]
-| inr h_1 =>
-  subst h_1
-  simp_all only [one_ne_zero, not_false_eq_true, or_true]
-
-instance NCoptoℤxℤ' : ℕ × {x : ℤ × ℤ | IsCoprime x.1 x.2} ≃ {x : ℤ × ℤ | x ≠ 0} where
-  toFun := fun x => ⟨⟨ x.1 * x.2.1.1, x.1 * x.2.1.2⟩, by
+instance NCoptoℤxℤ : {n : ℕ | n > 0} × {x : ℤ × ℤ | IsCoprime x.1 x.2} ≃ {x : ℤ × ℤ | x ≠ 0} where
+  toFun := fun x => ⟨⟨ x.1.1 * x.2.1.1, x.1.1 * x.2.1.2⟩, by
     have : x.2.1.1 ≠ 0 ∨ x.2.1.2 ≠ 0 := by
       simp_all only [Set.mem_setOf_eq, Set.coe_setOf, ne_eq]
       obtain ⟨x₁, x₂⟩ := x
@@ -125,31 +112,220 @@ instance NCoptoℤxℤ' : ℕ × {x : ℤ × ℤ | IsCoprime x.1 x.2} ≃ {x : �
       --obtain ⟨x₃, x₂⟩ := v
       simp_all only
       simp_all only [Set.mem_setOf_eq]
-      by_contra h
-      push_neg at h
       have vh' : v.1 ≠ 0 ∨ v.2 ≠ 0 := by apply IsCoprime.ne_zero_or_ne_zero vh
-      tauto
+      simp_all only [ne_eq]
     rw [Set.mem_setOf]
-    apply?   ⟩
-  invFun := _
-  left_inv := _
-  right_inv := _
+    simp_all only [Set.mem_setOf_eq, Set.coe_setOf, ne_eq, Prod.mk_eq_zero, mul_eq_zero, Int.natCast_eq_zero,
+      PNat.ne_zero, false_or, not_and]
+    intro a_1
+    simp_all only [not_or]
+    obtain ⟨fst, snd⟩ := x
+    obtain ⟨val, property⟩ := fst
+    obtain ⟨val_1, property_1⟩ := snd
+    obtain ⟨fst, snd⟩ := val_1
+    simp_all only
+    simp_all only [gt_iff_lt, Set.mem_setOf_eq]
+    cases this with
+    | inl h =>
+      cases a_1 with
+      | inl h_1 =>
+        subst h_1
+        simp_all only [lt_self_iff_false]
+      | inr h_2 =>
+        subst h_2
+        simp_all only [not_true_eq_false]
+    | inr h_1 =>
+      cases a_1 with
+      | inl h =>
+        subst h
+        simp_all only [lt_self_iff_false]
+      | inr h_2 =>
+        subst h_2
+        simp_all only [not_false_eq_true, and_true]
+        apply Aesop.BuiltinRules.not_intro
+        intro a_1
+        subst a_1
+        simp_all only [lt_self_iff_false] ⟩
+  invFun := fun x => ⟨⟨Int.gcd x.1.1 x.1.2, by
+    simp_all only [gt_iff_lt, ne_eq, Set.mem_setOf_eq, Int.gcd_pos_iff]
+    obtain ⟨val, property⟩ := x
+    obtain ⟨fst, snd⟩ := val
+    simp_all only
+    simp_all only [ne_eq, Set.mem_setOf_eq, Prod.mk_eq_zero, not_and]
+    by_cases h : fst = 0
+    · right
+      apply property h
+    · simp_all only [IsEmpty.forall_iff, not_false_eq_true, true_or]⟩,
+  ⟨⟨x.1.1 / (Int.gcd x.1.1 x.1.2), x.1.2 / (Int.gcd x.1.1 x.1.2)⟩, by
+    simp_all only [ne_eq, Set.mem_setOf_eq]
+    obtain ⟨val, property⟩ := x
+    obtain ⟨fst, snd⟩ := val
+    simp_all only
+    simp_all only [ne_eq, Set.mem_setOf_eq, Prod.mk_eq_zero, not_and]
+    have : ∃ u v ,fst * u + snd * v = fst.gcd snd := by
+      have : ∃ (x : ℤ) (y : ℤ), gcd fst snd = fst * x + snd * y := by
+        apply exists_gcd_eq_mul_add_mul
+      obtain ⟨x ,y, hxy⟩ := this
+      have : (Nat.gcd (fst.natAbs) (snd.natAbs)) = Int.gcd fst snd := by
+        congr
+      use x ; use y ; simp_rw [← hxy] ; norm_cast
+    obtain ⟨u,v,h⟩ := this
+    use u ; use v
+    have fact:  ((fst.gcd snd) : ℤ) ≠ 0 := by simp_all only [ne_eq, Int.gcd_eq_zero_iff, not_and, not_false_eq_true, implies_true] ; simp_all only [Int.natCast_eq_zero,
+      Int.gcd_eq_zero_iff, not_and, not_false_eq_true, implies_true]
+    simp_all only [ne_eq, Int.natCast_eq_zero, Int.gcd_eq_zero_iff, not_and, not_false_eq_true, implies_true]
+    sorry
+    ⟩ ⟩
+  left_inv := by
+    simp_all only [Set.coe_setOf, ne_eq, Set.mem_setOf_eq]
+    intro S
+    simp_all only
+    obtain ⟨fst, snd⟩ := S
+    obtain ⟨val, property⟩ := fst
+    obtain ⟨val_1, property_1⟩ := snd
+    obtain ⟨fst, snd⟩ := val_1
+    simp_all only [Prod.mk.injEq, Subtype.mk.injEq]
+    simp_all only [gt_iff_lt]
+    apply And.intro
+    · have property_1clone : IsCoprime fst snd := by apply property_1
+      obtain ⟨u, v , h₁⟩ := property_1
+      refine Int.gcd_eq_iff.mpr ?_
+      simp_all only [dvd_mul_right, true_and]
+      intro c a_1 a_2
+      have h₂: c ∣ val * fst ∧ c ∣ val * snd := by exact ⟨a_1,a_2 ⟩
+      sorry --silly proof
+    · apply And.intro
+      · sorry
+      · sorry
+  right_inv := sorry
 
-lemma nonsenseormaybenot {k : ℕ} : ∑' x : {x : ℤ × ℤ | x ≠ 0},
-(x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ ) =
+lemma isomrw : {x : ℤ × ℤ | x ≠ 0} = NCoptoℤxℤ '' Set.univ  := by
+  refine Set.ext ?_
+  intro x
+  constructor
+  · intro h
+    simp_all only [ne_eq, Set.mem_setOf_eq, Set.coe_setOf, Set.image_univ, EquivLike.range_eq_univ,
+      Subtype.range_coe_subtype, not_false_eq_true]
+  · intro h
+    simp_all only [ne_eq, Set.mem_setOf_eq, Set.coe_setOf, Set.image_univ, EquivLike.range_eq_univ,
+      Subtype.range_coe_subtype, not_false_eq_true]
+
+lemma NCoptoℤxℤ_set_inj : ∀ s : Set ({n : ℕ | n > 0} × {x : ℤ × ℤ | IsCoprime x.1 x.2}), Set.InjOn NCoptoℤxℤ s := by sorry
+
+lemma DoubleSum_eq_Prod {k : ℕ} : ∑' x : {x : ℤ × ℤ | x ≠ 0},(x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ ) =
 ∑' N : ℕ, 1/(N + 1) ^ k* ∑' x : {x : ℤ × ℤ | IsCoprime x.1 x.2}, (x.1.1 *  (z : ℂ) + x.1.2) ^ (- k : ℤ):= by
-  rw [Dontforgetwhatcardinalityis]
-  simp only [Set.mem_setOf_eq, zpow_neg, zpow_natCast, one_div]
-  refine tsum_eq_tsum_of_hasSum_iff_hasSum ?_
-  intro a
-  simp_all only [Set.coe_setOf]
-  apply Iff.intro
-  · intro a_1
-    rw [Set.mem_setOf_eq] at a_1
+  rw [isomrw]
+   --simp_all only [ne_eq, Set.mem_setOf_eq, Set.coe_setOf, zpow_neg, zpow_natCast, one_div]
+  convert @tsum_image ℂ _ _ _ _ _ (fun x => (x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ )) _ (NCoptoℤxℤ_set_inj Set.univ)-- (fun x => ((x.1.1 * ↑z + x.1.2) ^ k)⁻¹) (NCoptoℤxℤ_set_inj Set.univ)
+  simp only [ne_eq, Set.mem_setOf_eq, Set.coe_setOf, zpow_neg, zpow_natCast]
+  congr 1
+  simp_all only [Set.image_univ, EquivLike.range_eq_univ, Subtype.range_coe_subtype, Set.coe_setOf]
+  · sorry--I believe this is clearly true but not easy to show for some reason
+    --have : { x : ℤ × ℤ | ¬x = 0 } = (@Set.univ  )  := by
+  · refine hfunext ?_ ?_
+    · sorry
+    · intro a a' ha
+      simp_all only [heq_eq_eq, inv_inj]
+      obtain ⟨a_1, property⟩ := a
+      obtain ⟨val_1, h_2⟩ := a'
+      obtain ⟨b_1, b_2⟩ := a_1
+      obtain ⟨val, h_3⟩ := val_1
+      obtain ⟨c_1, c_2⟩ := val
+      simp_all only
+      congr
+      --rw [heq_eq_eq ⟨(b_1, b_2), property⟩ ⟨⟨(c_1, c_2), h_3⟩, h_2⟩] at ha
+      · sorry --need more coercions instances or something?
+      · sorry
+  · simp only [one_div, Set.coe_setOf, Set.mem_setOf_eq, zpow_neg, zpow_natCast, ne_eq]
+    unfold NCoptoℤxℤ
+    simp only [Set.coe_setOf, ne_eq, Set.mem_setOf_eq, Equiv.coe_fn_mk, Int.cast_mul,
+      Int.cast_natCast]
+    rw [@tsum_univ ℂ (({ x : ℕ // x > 0 } × { x : ℤ × ℤ // IsCoprime x.1 x.2 })) _ _ (fun x =>
+     ((x.1.1 * x.2.1.1 * ↑z + x.1.1 * ↑x.2.1.2) ^ k)⁻¹) ]
+    rw [Summable.tsum_prod]
+    ring_nf -- more lengthy computation
     sorry
-  · intro a_1
-    sorry
-  simp_rw [factoroutGCD]
+    sorry --summability
+
+
+lemma eisensteinSeries_as_SumOver_ℤ_ℤ {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
+∑' x : {x : ℤ × ℤ | x ≠ 0}, (x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ ) =
+ ∑' N : ℕ, 1/(N + 1) ^ k * (eisensteinSeries a k z) := by
+  rw [eisensteinSeries_eq_CoprimeSum]
+  simp only
+  rw [DoubleSum_eq_Prod]
+
+lemma eisensteinSeries_as_SumOver_ℤ_ℤ_fun {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
+(fun z : ℍ => ∑' x : {x : ℤ × ℤ | x ≠ 0}, (x.1.1 * ( z : ℂ) + x.1.2) ^ (- k : ℤ )) =( fun z : ℍ =>
+ ∑' N : ℕ, 1/(N + 1) ^ k * (eisensteinSeries a k z) ):= by
+ ext τ
+ rw [eisensteinSeries_as_SumOver_ℤ_ℤ]
+
+lemma eisensteinseries_splitoff_zeta {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
+  ∑' N : ℕ, 1/(N + 1) ^ k * (eisensteinSeries a k z) = (∑' N : ℕ, 1/(N + 1) ^ k) * (eisensteinSeries a k z) := by
+    sorry --follows from uniform convergence
+
+lemma eisensteinseries_splitoff_zeta_fun {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
+  (fun z : ℍ => ∑' N : ℕ, 1/(N + 1) ^ k * (eisensteinSeries a k z)) =
+ ( fun z => (∑' N : ℕ, 1/(N + 1) ^ k) * (eisensteinSeries a k z)) := by
+ ext τ
+ rw [eisensteinseries_splitoff_zeta]
+
+lemma DoubleSUm_relatesto_Bernoulli {k m: ℕ} (a : Fin 2 → ZMod (1:ℕ+)) (keven : k = 2 * m) (mne0 : m ≠ 0):
+∑' x : {x : ℤ × ℤ | x ≠ 0}, (x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ ) =
+   ((-1 : ℝ) ^ (k + 1) * (2 : ℝ) ^ (2 * k - 1) * π ^ (2 * k) *
+        bernoulli (2 * k) / (Nat.factorial (2 * k))) * (eisensteinSeries a k z) := by
+  rw [eisensteinSeries_as_SumOver_ℤ_ℤ a, eisensteinseries_splitoff_zeta a]
+  subst keven
+  --rw [ HasSum.tsum_eq (hasSum_zeta_nat mne0)]
+  sorry
+
+
+lemma compllemma : (@Finset.toSet (ℤ × ℤ) {0})ᶜ = {x : ℤ × ℤ | x ≠ 0} := by
+simp_all only [Finset.coe_singleton, ne_eq]
+rfl
+
+lemma summablenonsense {k : ℕ} : Summable (fun x : ℤ × ℤ => (x.1 * ( z : ℂ) + x.2) ^ (- k : ℤ )) := by sorry
+
+theorem Ihateleantheorem {k : ℕ} (kne0 : k ≠ 0):
+ ∑' x : {x : ℤ × ℤ | x ≠ 0}, (x.1.1 * ( z : ℂ) + x.1.2) ^ (- k : ℤ ) =
+  ∑' x : ℤ × ℤ, (x.1 * ( z : ℂ) + x.2) ^ (- k : ℤ ) := by
+  rw [← @Summable.sum_add_tsum_compl _ _ _ _ _ _ _ {(0 : ℤ × ℤ)} summablenonsense ]
+  rw_mod_cast [compllemma]
+  simp only [ne_eq, Set.coe_setOf, Set.mem_setOf_eq, zpow_neg, zpow_natCast, Finset.sum_singleton,
+    Prod.fst_zero, Int.cast_zero, zero_mul, Prod.snd_zero, add_zero, right_eq_add, inv_eq_zero,
+    pow_eq_zero_iff', true_and]
+  apply kne0
+
+
+-- ## VERY USEFUL
+--#check hasSum_zeta_nat
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def nonzero_pairs := {x : ℤ × ℤ | x ≠ 0}
@@ -194,8 +370,9 @@ lemma anotherequiv : nonzero_pairs = {fintoprod.toFun (fintoprod.invFun (x : ℤ
   sorry
 
 lemma anotherequiv2 {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
-nonzero_pairs = fintoprod '' gammaSet 1 a := by convert gammaset_equiv ; sorry ; apply k
+nonzero_pairs = fintoprod '' gammaSet 1 a := by sorry --convert gammaset_equiv ; sorry ; apply k
 
+/-
 lemma eisensteinSeries_as_SumOver_ℤ_ℤ {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
 eisensteinSeries a k = ( fun z : ℍ => ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k) := by
   ext τ
@@ -231,6 +408,7 @@ instance anothermorph : meq0 ≃ meq0 where
   left_inv := by tauto
   right_inv := by tauto
 
+
 @[simp]
 instance meq0subsetofnonzeropairs : meq0 ⊆ nonzero_pairs := by
   intro v h
@@ -253,18 +431,18 @@ lemma morphbetweenInvinj {S : Set ℤxℤ'} : Set.InjOn morphbetween.invFun S :=
   obtain ⟨val, property⟩ := S_1
   obtain ⟨fst, snd⟩ := val
   rfl
-
+-/
 --lemma subtypevalsetoninj {S : @Set.Elem (ℤ × ℤ) Subtype.val '' (morphbetween.invFun '' ℤxℤ)} : Set.InjOn Subtype.val S := by
 --  sorry
 
 --@[simp]
 --lemma morphbetweensubtypInv_inj {S : Set ℤxℤ'} : ↑(Subtype.val '' (morphbetween.invFun '' ℤxℤ))
 
-lemma sumsplitoff : ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k =
-  ∑' v : meq0, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k +
-   ∑' v : {x ∈ nonzero_pairs | x ∉ meq0}, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k := by
-  rw [nonzeropairs_eq_ℤxℤ']
-  sorry
+--lemma sumsplitoff : ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k =
+--  ∑' v : meq0, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k +
+--   ∑' v : {x ∈ nonzero_pairs | x ∉ meq0}, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k := by
+--  rw [nonzeropairs_eq_ℤxℤ']
+ -- sorry
 --  rw_mod_cast [tsum_image (fun v : (Subtype.val '' (morphbetween.invFun '' ℤxℤ)) =>  1 / (↑(↑v).1 * ↑z + ↑(↑v).2) ^ k ) _]
 
 
@@ -307,7 +485,8 @@ theorem cotagent_formula : ∑' (n : ℕ), (1 / ((z : ℂ) - (n + 1)) + 1 / ((z 
 lemma bernoulli_cotagent_Formula {k : ℕ } : HasSum (fun n : ℕ => (2 * π * i) ^ (2 * n) * (bernoulli' (2 * n)) / ((2 *n).factorial * z ^ (2 * n))) (π * z * cos (π * z)/ sin (π * z)):= by
   sorry
 
-lemma cotagent_as_exp : (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) = π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by sorry
+lemma cotagent_as_exp : (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) =
+π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by sorry
 
 lemma cotagent_as_exp1 :  π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) =
 - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by sorry
@@ -837,6 +1016,7 @@ theorem TendstoUniformlyLocally_of_EisensteinSeries_qExpansion
 theorem eisensteincoeff_isSummable (q : ℂ) {k m: ℕ } (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
 Summable ( fun n => @eisensteincoeff k n * q ^ n  ) := by
   rw [← summable_norm_iff]
+
   sorry
 
 theorem qexpansioneisensteincoeff_isSummableover𝕢 (z : ℍ) {k m: ℕ } (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
@@ -926,7 +1106,7 @@ Tendsto (fun z => ∑' (n : ℕ), @eisensteincoeff k n * 𝕢 1 z ^ n) I∞ (�
   --apply interchange_limit_sum_of_dominated_convergence
   --have : Tendsto (fun z ↦ ∑' (n : ℕ), eisensteincoeff n * 𝕢 1 z ^ n) I∞ (𝓝 ∑' (n : ℕ), eisensteincoeff n * 𝕢 1 z ^ n ) :=
   --apply tendstoUniformly_tsum_nat
-  simp_rw [Summable.tsum_eq_zero_add (eisensteincoeff_isSummable (𝕢 1 z) hk a keven)]
+ -- simp_rw [Summable.tsum_eq_zero_add (eisensteincoeff_isSummable (𝕢 1 z) hk a keven)]
   sorry
 
 --TendstoUniformlyOnFilter
