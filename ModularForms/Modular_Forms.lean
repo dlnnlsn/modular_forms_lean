@@ -37,39 +37,167 @@ instance fintoprod : (Fin 2 → ℤ) ≃ ℤ × ℤ where
       subst h
       simp_all only [Fin.isValue]
     next h =>
-      have : b = 1 := by sorry --trivial
+      have : b = 1 := by exact Fin.eq_one_of_ne_zero b h
       rw [this]
   right_inv := by
     intro v
     simp_all only [Fin.isValue, ↓reduceIte, one_ne_zero, Prod.mk.eta]
 
-@[simp]
-lemma gammaset_equiv {k : ℕ} (a : Fin 2 → ZMod 1) : gammaSet 1 a = {fintoprod.invFun (x : ℤ × ℤ) | x ≠ 0} := by
-  ext v
+lemma gammaSet_eq_coprime_int  (a : Fin 2 → ZMod 1): fintoprod.toFun '' gammaSet 1 a = {x : ℤ × ℤ | IsCoprime x.1 x.2} := by
+  ext x
   constructor
   · intro h
-    simp only [fintoprod]
-    convert h
-    simp only [gammaSet]
-    ext v₁
-    constructor
-    · intro h₁
-      sorry
-    sorry
+    apply Membership.mem.out at h
+    obtain ⟨a₁, h₁⟩ := h
+    simp only [Equiv.toFun_as_coe] at h₁
+    unfold fintoprod at h₁
+    simp only [Fin.isValue, Equiv.coe_fn_mk] at h₁
+    have h₂ : a₁ ∈ gammaSet 1 a := by apply h₁.1
+    have h₃ : (a₁ 0 , a₁ 1) = x := by apply h₁.2
+    apply Membership.mem.out at h₂
+    have h₄ : x.1 = a₁ 0 := by
+      subst h₃ ; simp_all only [Fin.isValue, and_true]
+    have h₅ : x.2 = a₁ 1 := by subst h₃ ; simp_all only [Fin.isValue, and_true]
+    have h₆ : IsCoprime x.1 x.2 := by rw [h₄, h₅] ; apply h₂.2
+    subst h₃
+    simp_all only [Fin.isValue, and_true, Set.mem_setOf_eq]
+  · intro h
+    apply Membership.mem.out at h
+    unfold fintoprod
+    simp_all only [Fin.isValue, Set.mem_image]
+    obtain ⟨x₁, x₂⟩ := x
+    simp_all only [Fin.isValue, Prod.mk.injEq]
+    use (fun n => if n = 0 then x₁ else x₂)
+    simp only [Fin.isValue, ↓reduceIte, one_ne_zero, and_self, and_true]
+    have h₁ : gammaSet 1 a = gammaSet 1 ((fun n ↦ if n = 0 then x₁ else x₂)) := by apply gammaSet_one_eq
+    rw [h₁]
+    unfold gammaSet
+    simp_all only [Fin.isValue, Set.mem_setOf_eq, ↓reduceIte, one_ne_zero, and_true]
+    ext x : 1
+    simp_all only [Fin.isValue, comp_apply, Int.cast_ite]
 
+theorem eisensteinSeries_eq_CoprimeSum {k : ℕ} (a : Fin 2 → ZMod 1) :
+eisensteinSeries a k = fun z : ℍ => ∑' x : {x : ℤ × ℤ | IsCoprime x.1 x.2}, (x.1.1 *  (z : ℂ) + x.1.2) ^ (- k: ℤ) := by
+unfold eisensteinSeries
+ext z
+rw [← gammaSet_eq_coprime_int a, ]
+rw [@tsum_image ℂ (ℤ × ℤ) (Fin 2 → ℤ)  _ _ fintoprod.toFun (fun x => (x.1 * z + x.2) ^ (-k:ℤ)) (gammaSet 1 a) _ ]
+congr
+refine Injective.injOn ?_
+intro v v₁ h
+simp_all only [Equiv.toFun_as_coe, EmbeddingLike.apply_eq_iff_eq]
+
+
+
+theorem Dontforgetwhatcardinalityis : {x : ℤ × ℤ | x ≠ 0} =
+{x : ℤ × ℤ | ∃ c : ℤ, ∃ d : ℤ, IsCoprime c d ∧ ∃ N : ℤ, (x.1,x.2) = (N * c,N * d)} := by
   sorry
+@[simp]
+lemma factoroutGCD {k : ℕ} {m n : ℤ} {mornne0 : m ≠ 0 ∨ n ≠ 0}: (m * (z : ℂ) + n) ^ (-k : ℤ) =
+(Int.gcd m n) ^ (- k : ℤ) * (m / Int.gcd m n * (z : ℂ) + n / Int.gcd m n) ^ (-k : ℤ) := by
+field_simp; ring_nf ; simp ;
+simp_all only [ne_eq]
+cases mornne0 with
+| inl h =>
+  simp_all only [ne_eq, pow_eq_zero_iff', Nat.cast_eq_zero, Int.gcd_eq_zero_iff, false_and, not_false_eq_true,
+    mul_inv_cancel_right₀]
+| inr h_1 =>
+  simp_all only [ne_eq, pow_eq_zero_iff', Nat.cast_eq_zero, Int.gcd_eq_zero_iff, and_false, false_and,
+    not_false_eq_true, mul_inv_cancel_right₀]
+
+example {m n : ℕ}: IsCoprime m n → m ≠ 0 ∨ n ≠ 0 := by
+intro a_1
+simp_all only [Nat.isCoprime_iff, ne_eq]
+cases a_1 with
+| inl h =>
+  subst h
+  simp_all only [one_ne_zero, not_false_eq_true, true_or]
+| inr h_1 =>
+  subst h_1
+  simp_all only [one_ne_zero, not_false_eq_true, or_true]
+
+instance NCoptoℤxℤ' : ℕ × {x : ℤ × ℤ | IsCoprime x.1 x.2} ≃ {x : ℤ × ℤ | x ≠ 0} where
+  toFun := fun x => ⟨⟨ x.1 * x.2.1.1, x.1 * x.2.1.2⟩, by
+    have : x.2.1.1 ≠ 0 ∨ x.2.1.2 ≠ 0 := by
+      simp_all only [Set.mem_setOf_eq, Set.coe_setOf, ne_eq]
+      obtain ⟨x₁, x₂⟩ := x
+      obtain ⟨v, vh⟩ := x₂
+      --obtain ⟨x₃, x₂⟩ := v
+      simp_all only
+      simp_all only [Set.mem_setOf_eq]
+      by_contra h
+      push_neg at h
+      have vh' : v.1 ≠ 0 ∨ v.2 ≠ 0 := by apply IsCoprime.ne_zero_or_ne_zero vh
+      tauto
+    rw [Set.mem_setOf]
+    apply?   ⟩
+  invFun := _
+  left_inv := _
+  right_inv := _
+
+lemma nonsenseormaybenot {k : ℕ} : ∑' x : {x : ℤ × ℤ | x ≠ 0},
+(x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ ) =
+∑' N : ℕ, 1/(N + 1) ^ k* ∑' x : {x : ℤ × ℤ | IsCoprime x.1 x.2}, (x.1.1 *  (z : ℂ) + x.1.2) ^ (- k : ℤ):= by
+  rw [Dontforgetwhatcardinalityis]
+  simp only [Set.mem_setOf_eq, zpow_neg, zpow_natCast, one_div]
+  refine tsum_eq_tsum_of_hasSum_iff_hasSum ?_
+  intro a
+  simp_all only [Set.coe_setOf]
+  apply Iff.intro
+  · intro a_1
+    rw [Set.mem_setOf_eq] at a_1
+    sorry
+  · intro a_1
+    sorry
+  simp_rw [factoroutGCD]
+
 
 def nonzero_pairs := {x : ℤ × ℤ | x ≠ 0}
+def ℤxℤ' := {x : ℤ × ℤ // x ≠ 0}
+def ℤxℤ := {x : ℤxℤ' | x.1 ≠ 0}
+
+@[simp]
+lemma ℤxℤisTop : IsTop ℤxℤ := by
+  intro S
+  simp only [Set.le_eq_subset]
+  intro x h
+  unfold ℤxℤ
+  simp only [ne_eq, Set.mem_setOf_eq]
+  push_neg
+  unfold ℤxℤ' at S
+ -- rw [Set.mem_setOf] at h
+  sorry
+
+instance morphbetween : nonzero_pairs ≃ ℤxℤ' where
+  toFun := fun x => x
+  invFun := fun x => x
+  left_inv := by tauto
+  right_inv := by tauto
+
+@[simp]
+lemma nonzeropairs_eq_ℤxℤ' : nonzero_pairs = morphbetween.invFun '' (ℤxℤ) := by
+  simp_all only [Equiv.invFun_as_coe]
+  ext x : 1
+  simp_all
+  obtain ⟨fst, snd⟩ := x
+  apply Iff.intro
+  · intro a
+    simp_all only [exists_true_left]
+    exact a
+  · intro a
+    obtain ⟨w, h⟩ := a
+    simp_all only
 
 @[simp]
 lemma anotherequiv : nonzero_pairs = {fintoprod.toFun (fintoprod.invFun (x : ℤ × ℤ)) | x ≠ 0} := by
   simp [fintoprod]
-  rfl
+  sorry
+
 lemma anotherequiv2 {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
 nonzero_pairs = fintoprod '' gammaSet 1 a := by convert gammaset_equiv ; sorry ; apply k
 
 lemma eisensteinSeries_as_SumOver_ℤ_ℤ {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+)) :
-eisensteinSeries a k = fun z : ℍ => ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k := by
+eisensteinSeries a k = ( fun z : ℍ => ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k) := by
   ext τ
   unfold eisensteinSeries eisSummand
   simp_all only [PNat.val_ofNat, Fin.isValue, zpow_neg, zpow_natCast]
@@ -94,10 +222,70 @@ eisensteinSeries a k = fun z : ℍ => ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ)
   · sorry
   · apply k
 
+def meq0 := { x : ℤ × ℤ | x ≠ 0 ∧ x.1 = 0}
+def meq0' := { x : ℤxℤ' | x.1 = 0 }
+
+instance anothermorph : meq0 ≃ meq0 where
+  toFun := fun x => x
+  invFun := fun x => x
+  left_inv := by tauto
+  right_inv := by tauto
+
+@[simp]
+instance meq0subsetofnonzeropairs : meq0 ⊆ nonzero_pairs := by
+  intro v h
+  obtain ⟨h₁, right⟩ := h
+  intro h₂
+  contradiction
+
+@[simp]
+lemma morphbetweeninj (S : Set ↑nonzero_pairs): Set.InjOn morphbetween S := by
+  intro S_1 h S_2 h₁ h₂
+  subst h₂
+  obtain ⟨val, property⟩ := S_1
+  obtain ⟨fst, snd⟩ := val
+  rfl
+
+@[simp]
+lemma morphbetweenInvinj {S : Set ℤxℤ'} : Set.InjOn morphbetween.invFun S := by
+  intro S_1 h S_2 h₁ h₂
+  subst h₂
+  obtain ⟨val, property⟩ := S_1
+  obtain ⟨fst, snd⟩ := val
+  rfl
+
+--lemma subtypevalsetoninj {S : @Set.Elem (ℤ × ℤ) Subtype.val '' (morphbetween.invFun '' ℤxℤ)} : Set.InjOn Subtype.val S := by
+--  sorry
+
+--@[simp]
+--lemma morphbetweensubtypInv_inj {S : Set ℤxℤ'} : ↑(Subtype.val '' (morphbetween.invFun '' ℤxℤ))
+
+lemma sumsplitoff : ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k =
+  ∑' v : meq0, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k +
+   ∑' v : {x ∈ nonzero_pairs | x ∉ meq0}, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k := by
+  rw [nonzeropairs_eq_ℤxℤ']
+  sorry
+--  rw_mod_cast [tsum_image (fun v : (Subtype.val '' (morphbetween.invFun '' ℤxℤ)) =>  1 / (↑(↑v).1 * ↑z + ↑(↑v).2) ^ k ) _]
+
+
+
+  --convert tsum_image ((fun (v : @Set.Elem (ℤ × ℤ) (Subtype.val '' (morphbetween.invFun '' ℤxℤ)))
+  -- => 1 / ((@Int.cast ℂ AddGroupWithOne.toIntCast (↑v).1) * z + (@Int.cast ℂ AddGroupWithOne.toIntCast (↑v).2)) ^ k)) (_)
+--
+  --have h₁ : ∑' (v : ↑(Subtype.val '' (morphbetween.invFun '' ℤxℤ))), 1 / (↑(↑v).1 * ↑z + ↑(↑v).2) ^ k =
+  --∑' (v : ↑(Subtype.val '' (morphbetween.invFun '' ℤxℤ))), 1 / (↑(↑v).1 * ↑z + ↑(↑v).2) ^ k := by
+--    rw [tsum_image _ (morphbetweenInvinj)]
+
+  --congr 1
+  --simp_all only [Equiv.invFun_as_coe]
+  --congr
+  --convert Summable.tsum_subtype_add_tsum_subtype_compl _ meq0
+  --all_goals try infer_instance
+
+
 lemma sumsplitintwo : (fun z : ℍ => ∑' v : nonzero_pairs, 1 / ((v.1.1 : ℤ) * (z : ℂ) + v.1.2) ^ k) =
 fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k:ℤ)) + ∑' y : ℕ, ∑' x : ℤ, ((y + 1)* (z : ℂ) + x) ^ (-(k:ℤ)) := by
   simp [nonzero_pairs]
-
   sorry
 
 lemma eisensteinSeries_expand {k : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+)) :
@@ -133,25 +321,37 @@ lemma cotagent_as_exp3 : (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ))  = - 
     _  = - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by apply cotagent_as_exp1
     _  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by apply cotagent_as_exp2
 
+-- ## Dylan's code
+theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
+    π * cot (π * z) = 1/z + ∑' k : ℕ, (1/(z + (k + 1)) + 1/(z - (k + 1))) := by sorry
 
+-- ## deriv_pow
 lemma rw_of_cotangent_base_case :
  ∑' x : ℤ, ((z:ℂ) + (x : ℂ))^(- 2 : ℤ) =
  (2*π*i)^ 2* ∑' d : ℕ, (d + 1) * Complex.exp (2*π*i*(d + 1)*z) := by
   have h : ∀ z : ℍ, ∑' (n : ℕ), (1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) = (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by intro τ ; convert cotagent_formula
   symm
   simp_rw [cotagent_as_exp3] at h
-  have h₁ : ∀ z : ℂ, HasDerivAt (fun τ : ℂ => -π *i) 0 z := by sorry
-  have h₂ {d : ℤ} : ∀ z : ℂ,HasDerivAt (fun z => cexp (2 * ↑π * i * (d + 1) * (ofComplex z : ℂ))) (2 * ↑π * i * (d + 1) * cexp (2 * ↑π * i * (d + 1) * (ofComplex z : ℂ))) z := by sorry
+  have h₁ : ∀ z : ℍ, HasDerivAt (fun τ : ℂ => -π *i) 0 z := by sorry
+  have h₂ {d : ℤ} : ∀ z : ℍ, HasDerivAt (fun z => 2 * π * i * (d + 1) * (z : ℂ))
+    (2 * π * i * (d + 1)) z := by
+    intro τ
+    simp_rw [mul_comm ( 2 * ↑π * i * (d + 1))]
+    apply hasDerivAt_mul_const ( 2 * ↑π * i * (d + 1))
+  have h₂₁ {d : ℤ} : ∀ z : ℍ,HasDerivAt (fun z => cexp (2 * ↑π * i * (d + 1) * (z : ℂ)))
+    ( cexp (2 * ↑π * i * (d + 1) * (z : ℂ)) * (2 * ↑π * i * (d + 1))) z := by
+    intro τ
+    apply HasDerivAt.cexp (h₂ τ)
   have h₃ {d : ℤ} : ∀ z : ℂ,HasDerivAt (fun z =>  2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (ofComplex z))) ((2 * ↑π * i) ^ 2 * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (ofComplex z : ℂ))) z := by sorry
   have h₄ {d : ℤ} : ∀ z : ℂ,HasDerivAt (fun z => (1 / ((z : ℂ)))) (1 / (z : ℂ) ^ 2) z := by sorry
   have h₅ : ∀ z : ℂ, HasDerivAt (fun z  => ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)))) (∑' (n : ℕ), (1 / ((ofComplex z : ℂ) + (↑n + 1)) ^ 2)) z := by sorry
-  have h₆ : ∀ z : ℂ, HasDerivAt (fun z =>  ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)) + 1 / ((ofComplex z : ℂ) + (↑n + 1)))) (- ∑' (n : ℤ), (1 / ((ofComplex z : ℂ) + (↑n))^2)) z := by sorry
-  have h₇ : ∀ z : ℂ, HasDerivAt (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (ofComplex z : ℂ ))) (- (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * ↑z)) z := by sorry
-  have h₈ : deriv (fun z => ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)) + 1 / ((ofComplex z : ℂ) + (↑n + 1)))) z =
-  deriv (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * ↑(ofComplex z : ℂ))) z := by congr; ext τ; simp_rw [h (ofComplex τ)]
-  have h₉ : - ∑' (n : ℤ), (1 / ((z : ℂ) + (↑n))^2) = - (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * ↑z) := by rw [deriv_eq h₆] at h₈ ; symm ; rw [deriv_eq h₇] at h₈ ; simp only [ofComplex_apply] at h₈ ; rw [h₈]
+  have h₆ : ∀ z : ℍ, HasDerivAt (fun z =>  ∑' (n : ℕ), (1 / ((z : ℂ) - (↑n + 1)) + 1 / ((z : ℂ) + (↑n + 1)))) (- ∑' (n : ℤ), (1 / ((z : ℂ) + (↑n))^2)) z := by sorry
+  have h₇ : ∀ z : ℍ, HasDerivAt (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (z : ℂ ))) (- (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * ↑z)) z := by sorry
+  have h₈ : ∀ z : ℍ, deriv (fun z  => ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)) + 1 / ((ofComplex z : ℂ) + (↑n + 1)))) z =
+  deriv (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * ↑(ofComplex z : ℂ))) z := by intro τ; congr; ext τ₁ ; simp_rw [h (ofComplex τ₁)]
+  have h₉ : - ∑' (n : ℤ), (1 / ((z : ℂ) + (↑n))^2) = - (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * z) := by rw [deriv_eq h₆] at h₈ ; symm ; rw [deriv_eq h₇] at h₈ ; simp only [ofComplex_apply] at h₈ ; rw [h₈]
   rw [neg_mul,neg_inj] at h₉
-  simp_all
+  simp_all only [one_div, neg_mul, forall_const, differentiableAt_const, zpow_neg]
   symm
   rw [← h₉]
   norm_cast
@@ -198,7 +398,7 @@ lemma rw_of_cotangent {k : ℕ } (hk : 2 ≤ k) :
 theorem eisensteinSeries_eq_qExpansion {k : ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+)) :
 eisensteinSeries a k =  fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) +
 (2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ,
-∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, m^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
+∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
   rw [eisensteinSeries_expand hk a]
   ext (z: ℍ)
   have {y : ℕ}: ∑' x : ℤ, ((y + 1)* (z:ℂ) + (x : ℂ))^(-(k : ℤ)) = (2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, (d + 1) ^ (k -1 ) * Complex.exp (2*π*i*(d + 1)*(y + 1)*(z:ℂ)) := by
@@ -207,7 +407,7 @@ eisensteinSeries a k =  fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : 
     simp_rw [mul_assoc (2 * π * i * _)]
     rw [← h, rw_of_cotangent (by linarith)]
   simp only [this]
-  have : ∑' (y : ℕ), ∑' (d : ℕ),(d + 1) ^(k -1)  * cexp (2*π*i*(d + 1)*(y + 1)*z) = ∑' (d : ℕ) (m : {s : ℕ | (s + 1) ∣ d + 1}), m^(k-1) * cexp (2*π*i*(d + 1)*z) := sorry
+  have : ∑' (y : ℕ), ∑' (d : ℕ),(d + 1) ^(k -1)  * cexp (2*π*i*(d + 1)*(y + 1)*z) = ∑' (d : ℕ) (m : {s : ℕ | (s + 1) ∣ d + 1}), (m + 1)^(k-1) * cexp (2*π*i*(d + 1)*z) := sorry
   congr
   rw [tsum_mul_left]
   rw [this]
@@ -237,23 +437,21 @@ lemma nnamme {d : ℕ+} : (fun z ↦ Complex.exp (2*π*i*d*z)) = Function.Period
 
 lemma eisenstein_sif_is {k : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))  :
   eisensteinSeries_SIF a k = fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) +
-(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, m^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
+(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
   ext z
   rw [eisensteinSeries_SIF_apply, eisensteinSeries_eq_qExpansion hk]
 
 lemma eisensteinSeries_MF_is {k : ℕ}  (hk : 3 ≤ (k:ℤ)) (a : Fin 2 → ZMod (1:ℕ+)) :
 (eisensteinSeries_MF hk a).toFun = fun z : ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) +
-(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, m^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by apply eisenstein_sif_is _ a ; norm_cast at hk
+(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by apply eisenstein_sif_is _ a ; norm_cast at hk
 
 --THIS ONE IS BETTER
 lemma eisensteinSeries_MF_is' {k : ℕ}  (hk : 3 ≤ (k:ℤ)) (a : Fin 2 → ZMod (1:ℕ+)) :
-(eisensteinSeries_MF hk a) = fun z : ℍ ↦ 2 * ∑' x : ℕ+, ((x : ℂ)) ^(-(k : ℤ)) +
-(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ+, ∑' m : {s : ℕ+ | s ∣ d}, m^(k-1) * Complex.exp (2*π*i*d*z) := by sorry -- apply eisenstein_sif_is _ a ; norm_cast at hk
+(eisensteinSeries_MF hk a) = fun z : ℍ ↦ 2 * ∑' x : ℕ, ((x +1 : ℂ)) ^(-(k : ℤ)) +
+(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by sorry -- apply eisenstein_sif_is _ a ; norm_cast at hk
 
 open DirectSum
 open scoped DirectSum
-
-#check CuspForm.zero_at_infty'
 
 lemma bdd_at_infty_of_zero_at_infty (f : CuspForm Γ k) : ∀ A : SL(2, ℤ), IsBoundedAtImInfty (f ∣[k] A) := by
   intro A
@@ -353,6 +551,8 @@ instance isom (Γ : Subgroup SL(2, ℤ)) (k : ℤ) :
 noncomputable def pow1 (k : ℕ)  := fun x : ℕ ↦ 2 * ((x : ℂ)) ^(-(k : ℤ))
 noncomputable def pow2 (k : ℕ)  := fun x : ℕ ↦ (2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * (∑' m : {s : ℕ+ | (s : ℕ) ∣ x}, (m : ℕ)^(k-1))-- * 𝕢 x⁻¹ z-- Complex.exp (2*π*i*x*z)
 
+
+
 lemma  zeta_HasSum_eq_bernoulli {k : ℕ} :
 HasSum (pow1 k)  (- (2 * π * i) ^ k * (bernoulli' k) / (2 * Nat.factorial k)) := by sorry
 
@@ -362,6 +562,7 @@ lemma eisenstein_q_expansion {k : ℕ}  (hk : 3 ≤ (k:ℤ)) (a : Fin 2 → ZMod
   unfold iteratedDeriv
   simp_all only [Nat.cast_one, PNat.val_ofNat, zpow_neg, zpow_natCast, Int.reduceNeg, zpow_one, Set.coe_setOf,
     Set.mem_setOf_eq]
+
   sorry
   --rw [eisensteinSeries_MF_is hk a] --maybe add another version of the above for this coercion?
   --unfold Periodic.cuspFunction --iteratedDeriv iteratedFDeriv
@@ -403,7 +604,7 @@ theorem qExpansion_unique {f g : ModularForm Γ k} : qExpansion 1 f = qExpansion
 
 
 
-lemma Zeta_function_eq {k : ℕ} : ∑' (x : ℕ+), (x : ℂ) ^ (-(k : ℤ)) = - (2 * π * i) ^ k * (bernoulli' k) / (2 * Nat.factorial k) := by
+lemma Zeta_function_eq {k : ℕ} : ∑' (x : ℕ), (x + 1: ℂ) ^ (-(k : ℤ)) = - (2 * π * i) ^ k * (bernoulli' k) / (2 * Nat.factorial k) := by
   sorry
 lemma i_pow_k_of_even {k m: ℕ} (keven:  k = 2 * m) : i ^ k = (- 1) ^ m := sorry
 
@@ -419,10 +620,12 @@ lemma eq_CuspFunction {f : ModularForm Γ(1) k} : f.toFun = fun τ : ℍ ↦ Sla
 open PowerSeries
 noncomputable instance FPowerSeries_of_PowerSeries : ℂ⟦X⟧ →ₗ[ℂ] FormalMultilinearSeries ℂ ℂ ℂ where
   toFun ψ := fun m ↦ ψ.coeff ℂ m • ContinuousMultilinearMap.mkPiAlgebraFin ℂ m _
-  map_add' := by intro ψ φ ; simp ; ext m h₁ ; ring_nf ; simp ; ring_nf
+  map_add' := by intro ψ φ ; simp ; ext m  ; ring_nf ; simp only [ContinuousMultilinearMap.smul_apply,
+    ContinuousMultilinearMap.mkPiAlgebraFin_apply, List.ofFn_const, List.prod_replicate, one_pow,
+    smul_eq_mul, mul_one, FormalMultilinearSeries.add_apply, ContinuousMultilinearMap.add_apply]
   map_smul' := by
     intro c ψ ; simp_all only [map_smul, smul_eq_mul, RingHom.id_apply] ;
-    ext m h₁ ;
+    ext m;
     simp_all only [ContinuousMultilinearMap.smul_apply, ContinuousMultilinearMap.mkPiAlgebraFin_apply, smul_eq_mul,
       FormalMultilinearSeries.smul_apply]
     ring_nf
@@ -433,11 +636,15 @@ lemma coe_inj :  Injective FPowerSeries_of_PowerSeries := by
   simp [FPowerSeries_of_PowerSeries] at h
   sorry
 
-
 lemma modularForms_is_periodic {τ : ℂ} {f : ModularForm Γ(1) k} : f (ofComplex (τ + 1)) = f (ofComplex τ) := by sorry
 
 lemma modularForms_is_differentiable {f : ModularForm Γ(1) k} : ∀ᶠ (z : ℂ) in I∞, DifferentiableAt ℂ (⇑f ∘ ↑ofComplex) z := by
+  have : MDifferentiable 𝓘(ℂ) 𝓘(ℂ) (f) := by apply f.holo'
+  simp_rw [← mdifferentiableAt_iff_differentiableAt]
+  convert this
+  simp_all only [eventually_comap, eventually_atTop, ge_iff_le, iff_true]
   sorry
+
 lemma modularForms_is_BoundedAtFilter {f : ModularForm Γ(1) k} : I∞.BoundedAtFilter (⇑f ∘ ↑ofComplex) := by sorry
 
 --lemma eq_multilin : f = qExpansionFormalMultilinearSeries 1 f
@@ -545,57 +752,286 @@ lemma obvsthing {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+
  convert hasSum_qExpansion 1 (eisensteinSeries_MF hk a) z
  norm_cast
 
-lemma obvsthing' {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(_ :  k = 2 * m)  :
+lemma obvsthing' {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(_ :  k = 2 * m) (hq : ‖q‖ < 1) :
  HasSum (fun n : ℕ ↦ (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • q ^ n) (SlashInvariantFormClass.cuspFunction 1 (eisensteinSeries_MF hk a) q) := by
- sorry
+ apply hasSum_qExpansion_of_abs_lt
+ apply hq
+
+lemma obvsthing'' {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) (hq : ‖q‖ < 1) :
+ HasSum (fun n : ℕ ↦ (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • 𝕢 1 z ^ n) (SlashInvariantFormClass.cuspFunction 1 (eisensteinSeries_MF hk a) (𝕢 1 z)) := by
+have : SlashInvariantFormClass.cuspFunction 1 (eisensteinSeries_MF hk a) (𝕢 1 z) = SlashInvariantFormClass.cuspFunction 1 (eisensteinSeries_MF hk a) (𝕢 (1:ℕ) z) := by
+  simp only [PNat.val_ofNat, Nat.cast_one]
+rw [this]
+rw [SlashInvariantFormClass.eq_cuspFunction 1 (eisensteinSeries_MF hk a) z]
+apply obvsthing hk a keven
 
 lemma obvsthing4 {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
 (- (2 * π * i) ^ k * (bernoulli' k) / Nat.factorial k
   + (2 * π * i) ^ k * (k - 1).factorial ^ (-(1 : ℤ)) *
-   ∑' (d : ℕ+) (m : {s | s ∣ d}), ((m : ℕ+) : ℂ) ^ (k - 1) • 𝕢 1 z ^ (d:ℕ) )=
+   ∑' (d : ℕ) (m : {s | s + 1 ∣ d + 1}), ((m : ℂ)  + 1) ^ (k - 1) • 𝕢 1 z ^ (d + 1:ℕ) )=
     ∑' n : ℕ, (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • 𝕢 1 z ^ n := by
   sorry
 
 noncomputable def eisensteincoeff {k : ℕ} : ℕ → ℂ :=
   fun n => if n = 0 then (- (2 * π * i) ^ k * (bernoulli' k) / Nat.factorial k)
-  else (2 * π * i) ^ k * (k - 1).factorial ^ (-(1 : ℤ)) * ∑' (m : {s | s ∣ n }), (m : ℂ) ^ (k - 1)
+  else (2 * π * i) ^ k * (k - 1).factorial ^ (-(1 : ℤ)) * ∑' (m : {s | s + 1 ∣ n }), ((m: ℂ) + 1) ^ (k - 1)
 
 lemma eisensteinSeries_is_tsum_eisensteincoeff {k m : ℕ} (hk : 3 ≤ (k : ℤ)) --here we use all the tsum stuff above
  (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
- eisensteinSeries_MF hk a z = (∑' (n : ℕ), @eisensteincoeff k n • 𝕢 1 z ^ n) := by sorry
+ eisensteinSeries_MF hk a z = (∑' (n : ℕ), @eisensteincoeff k n • 𝕢 1 z ^ n) := by
+  rw [eisensteinSeries_MF_is']
+  have :   ∑' (n : ℕ), @eisensteincoeff k n • 𝕢 1 ↑z ^ n = @eisensteincoeff k 0 +
+  ∑' (n : ℕ), @eisensteincoeff k (n + 1) • 𝕢 1 ↑z ^ (n + 1):= by
+    simp_all only [Nat.cast_mul, Nat.cast_ofNat, smul_eq_mul]
+    have : @eisensteincoeff (2*m) 0 =  ∑ «i» ∈ Finset.range 1, @eisensteincoeff (2*m) «i» := by
+      simp only [Finset.range_one, Finset.sum_singleton]
+    symm
+    rw [this]
+    have : ∑ «i» ∈ Finset.range 1, @eisensteincoeff (2*m) «i» = ∑ «i» ∈ Finset.range 1, @eisensteincoeff (2*m) «i» * 𝕢 1 z ^ «i» := by simp only [Finset.range_one,
+      Finset.sum_singleton, pow_zero, mul_one]
+    rw [this]
+    have :  ∑' (n : ℕ), @eisensteincoeff (2*m) (n + 1) * 𝕢 1 ↑z ^ (n +1)  =  ∑' («i» : ℕ), @eisensteincoeff (2*m) («i» + 1) * 𝕢 1 ↑z ^ («i» +1 ) := by rfl
+    rw [this]
+    have summablehyp:  Summable (fun «i» => @eisensteincoeff (2*m) «i» * 𝕢 1 ↑z ^ «i») := by sorry
+    rw [Summable.sum_add_tsum_nat_add 1 summablehyp]
+  rw [this]
+  unfold eisensteincoeff
+  simp only [zpow_neg, zpow_natCast, Int.reduceNeg, zpow_one, Set.coe_setOf, Set.mem_setOf_eq,
+    ↓reduceIte, neg_mul, Nat.add_eq_zero, one_ne_zero, and_false, smul_eq_mul]
+  sorry --annoying compututations
 
-lemma eisensteinSeries_is_tsum_eisensteincoeff' {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ))
- (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
- eisensteinSeries_MF hk a z = (∑' (n : ℕ), @eisensteincoeff k n • q ^ n) := by sorry
 
-lemma obvsthing7 {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(_ :  k = 2 * m)  :
+lemma eisensteincoeff_zeroeq {k : ℕ} : @eisensteincoeff k 0 = - (2 * π * i) ^ k * (bernoulli' k) / (Nat.factorial k) := by
+  rfl
+
+lemma eisensteincoeeff_eq {k : ℕ} (n : ℕ) (ngeq0 : n > 0) : @eisensteincoeff k n = (2 * π * i) ^ k * (k - 1).factorial ^ (-(1 : ℤ)) * ∑' (m : {s | s + 1 ∣ n }), ((m : ℂ)+ 1 )^ (k - 1) := by
+  unfold eisensteincoeff
+  simp_all only [gt_iff_lt, neg_mul, Int.reduceNeg, zpow_neg, zpow_one, Set.coe_setOf, Set.mem_setOf_eq,
+    ite_eq_right_iff]
+  intro a
+  subst a
+  simp_all only [lt_self_iff_false]
+
+lemma sillylemma {k : ℕ}:  2 * (-(2 * ↑π * i) ^ k * ↑(bernoulli' k) / (2 * ↑k.factorial)) =
+- (2 * π * i) ^ k * (bernoulli' k) / Nat.factorial k := by field_simp; ring_nf
+
+lemma eisensteinSeries_is_tsum_eisensteincoeff' {k m : ℕ} (hk : 3 ≤ (k : ℤ))
+ (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m):
+ eisensteinSeries_MF hk a z = (∑' (n : ℕ), @eisensteincoeff k n • cexp (2 * π * i * z) ^ n) := by
+  rw [eisensteinSeries_MF_is', Zeta_function_eq]
+  have : (2 * ↑k.factorial : ℂ) ≠ 0 := by norm_num ; apply Nat.factorial_ne_zero
+  rw [sillylemma, ← @eisensteincoeff_zeroeq k]
+  simp_rw [← smul_eq_mul]
+  rw [← Summable.tsum_const_smul]
+  simp_rw [smul_eq_mul]
+  --simp_rw [← eisensteincoeeff_eq _ (by linarith)]
+  sorry
+  sorry
+
+theorem TendstoUniformlyLocally_of_EisensteinSeries_qExpansion
+{k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)
+: TendstoLocallyUniformly (fun (s : Finset (ℕ)) ↦ (fun z : ℍ ↦ (∑ x ∈ s, @eisensteincoeff k x * (𝕢 1 z ^ x))))
+(fun z => eisensteinSeries a k z) Filter.atTop := by
+  sorry
+
+theorem eisensteincoeff_isSummable (q : ℂ) {k m: ℕ } (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+Summable ( fun n => @eisensteincoeff k n * q ^ n  ) := by
+  rw [← summable_norm_iff]
+  sorry
+
+theorem qexpansioneisensteincoeff_isSummableover𝕢 (z : ℍ) {k m: ℕ } (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+Summable ( fun n =>(qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • 𝕢 1 z ^ n ) := by
+  --rw [← summable_norm_iff]
+  sorry -- cuspfunction should be used I think
+
+theorem qexpansioneisensteincoeff_isSummable (q : ℂ) {k m: ℕ } (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+Summable ( fun n =>(qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • q ^ n ) := by
+  --rw [← summable_norm_iff]
+  sorry -- cuspfunction should be used I think
+
+lemma sufficestoshowtsumseq_Eisenstein {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)  :
  HasSum (fun n : ℕ ↦ (@eisensteincoeff k n • 𝕢 1 z ^ n)) ((eisensteinSeries_MF hk a) z) := by
-  rw [eisensteinSeries_is_tsum_eisensteincoeff]
-  unfold HasSum Tendsto
-  intro S h₁
-  rename_i x
-  subst x
-  simp_all only [Nat.cast_mul, Nat.cast_ofNat, smul_eq_mul, mem_map, mem_atTop_sets, ge_iff_le, Finset.le_eq_subset,
-    Set.mem_preimage]
+  rw [Summable.hasSum_iff]
+  rw [eisensteinSeries_is_tsum_eisensteincoeff']
+  congr
+  unfold Periodic.qParam
+  field_simp
+  apply keven
+  apply eisensteincoeff_isSummable (𝕢 1 z) hk a keven
 
+lemma tsums_equal {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) :
+∑' (n : ℕ), @eisensteincoeff k n • 𝕢 1 z ^ n = ∑'(n : ℕ),( (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • 𝕢 1 z ^ n) := by
+  rw [HasSum.tsum_eq (sufficestoshowtsumseq_Eisenstein hk a keven), HasSum.tsum_eq (obvsthing hk a keven) ]
+
+-- ## Dylan's Code
+theorem interchange_limit_sum_of_dominated_convergence {α: Type*} [RCLike α] {f: ℕ → ℕ → α} {M: ℕ → ℝ} {f_lim: ℕ → α}
+  (h_lim: ∀ k, Tendsto (f k ·) atTop (𝓝 (f_lim k)))
+  (h_bound: ∀ k, ∀ n, ‖f k n‖ ≤ M k)
+  (h_M_summable: Summable M)
+  : Tendsto (∑' k, f k ·) atTop (𝓝 <| ∑' k, f_lim k)
+:= by sorry
+
+open Periodic
+
+lemma filtercomp_eisenstein (x : ℂ) {k : ℕ} {n : ℕ} :
+ @eisensteincoeff k n * 𝕢 1 x ^ n ≠ @eisensteincoeff k n * 0 := by sorry
+
+lemma eisen_lim  {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) (n : ℕ) ( nge0 : n > 0):
+Tendsto (fun z ↦ @eisensteincoeff k n * 𝕢 1 ↑z ^ n) I∞ (𝓝[≠] (@eisensteincoeff k n * 0)) := by
+have hh : 0 < 1 := by linarith
+refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ ?_
+    (.of_forall fun q ↦ @filtercomp_eisenstein _ k _)
+apply Filter.Tendsto.const_mul
+rw [tendsto_zero_iff_norm_tendsto_zero]
+--simp only [norm_qParam]
+--apply (tendsto_comap'_iff (m := fun y ↦ Real.exp (-2 * π * y / h)) (range_im ▸ univ_mem)).mpr
+--refine Real.tendsto_exp_atBot.comp (.atBot_div_const hh (tendsto_id.const_mul_atTop_of_neg ?_))
+--simpa using Real.pi_pos
+sorry
+
+lemma eisen_bounded  {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) (n : ℕ):
+∀ x : ℂ, ‖@eisensteincoeff k n * 𝕢 1 x ^ n‖ ≤ ‖@eisensteincoeff k n‖ := by  sorry
+
+lemma eisen_summable {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) :
+Summable fun n => ‖@eisensteincoeff k n‖  := by sorry
+
+theorem partial_sum_tendsto {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) (n : ℕ) ( nge0 : n > 0):
+Tendsto (fun z ↦ ∑ «i» ∈ Finset.range n, @eisensteincoeff k «i» * 𝕢 1 ↑z ^ «i») I∞ (𝓝 (@eisensteincoeff k 0)) := by
+  have : @eisensteincoeff k 0 = @eisensteincoeff k 0 + 0 := by symm ; rw [add_zero]
+  rw [this]
+  have eis_lim  : ∀ m ∈ Finset.range n, Tendsto (fun z ↦ @eisensteincoeff k m * 𝕢 1 z ^ m)
+    I∞ (𝓝 (@eisensteincoeff k m * 0)) := by sorry
+  have : (fun z ↦ ∑ «i» ∈ Finset.range n, @eisensteincoeff k «i» * 𝕢 1 z ^ «i») = fun z ↦( @eisensteincoeff k 0 + ∑ «i» ∈ Finset.range n \ {0}, @eisensteincoeff k «i» * 𝕢 1 z ^ «i»):= by sorry--Finset.sum_eq_add
+  rw [this]
+  apply Filter.Tendsto.const_add
+  have : 0 = @eisensteincoeff k n * 0 := by simp only [mul_zero]
+  have : 0 = ( ∑ «i» ∈ Finset.range n \ {0}, @eisensteincoeff k «i» * 0) := by simp only [mul_zero,
+    Finset.sum_const_zero]
+  rw[this]
+  apply tendsto_finset_sum
+  intro j hj
+  refine eis_lim j ?_
+  sorry --finsets dont exactly match
+
+lemma uniformcontinuity  {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m)  :
+TendstoUniformly (fun (N : ℕ) (x : ℂ) => ∑ n ∈ Finset.range N, @eisensteincoeff k n * 𝕢 1 x ^ n)
+ (fun (x : ℂ) => ∑' (n : ℕ), @eisensteincoeff k n * 𝕢 1 x ^ n) Filter.atTop := by
+  apply tendstoUniformly_tsum_nat (eisen_summable hk a keven) (eisen_bounded hk a keven )-- ?_
+
+theorem tsumeisensteincoeff_tendsto {z : ℍ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) :
+Tendsto (fun z => ∑' (n : ℕ), @eisensteincoeff k n * 𝕢 1 z ^ n) I∞ (𝓝[≠] @eisensteincoeff k 0) := by
+  have h : HasSum (fun n => @eisensteincoeff k n * 𝕢 1 z ^ n) (eisensteinSeries_MF hk a z)  := by sorry
+  rw [Summable.hasSum_iff_tendsto_nat (eisensteincoeff_isSummable (𝕢 1 z) hk a keven)] at h
+
+  --apply interchange_limit_sum_of_dominated_convergence
+  --have : Tendsto (fun z ↦ ∑' (n : ℕ), eisensteincoeff n * 𝕢 1 z ^ n) I∞ (𝓝 ∑' (n : ℕ), eisensteincoeff n * 𝕢 1 z ^ n ) :=
+  --apply tendstoUniformly_tsum_nat
+  simp_rw [Summable.tsum_eq_zero_add (eisensteincoeff_isSummable (𝕢 1 z) hk a keven)]
   sorry
-  assumption
 
-lemma obvsthing8 {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(_ :  k = 2 * m)  :
+--TendstoUniformlyOnFilter
+
+#check Summable.tsum_eq_zero_add
+lemma coeffzeroagree {z : ℍ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) :
+  @eisensteincoeff k 0 = (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ 0 := by
+    have h : ∑' (n : ℕ), @eisensteincoeff k n • 𝕢 1 z ^ n = ∑'(n : ℕ),( (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • 𝕢 1 z ^ n) := by apply tsums_equal hk a keven
+    simp_rw [smul_eq_mul] at h
+    rw [Summable.tsum_eq_zero_add (eisensteincoeff_isSummable (𝕢 1 z) hk a keven)] at h
+    simp_rw [← smul_eq_mul] at h
+    rw [Summable.tsum_eq_zero_add (qexpansioneisensteincoeff_isSummable (𝕢 1 z) hk a keven) ] at h
+
+lemma cuspfunctioneisensteinastsum {q : ℂ}{k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) (qnorm : ‖q‖ < 1) :
+cuspFunction 1 (⇑(eisensteinSeries_MF hk a) ∘ ↑ofComplex) q =  ∑' (n : ℕ), (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ 0 *  q ^ n := by
+  symm
+  apply HasSum.tsum_eq
+  convert obvsthing' hk a keven qnorm
+  sorry
+  sorry
+
+lemma eisensteinSeriesCuspfunction_tendso_eisensteincoeff0 {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) :
+Tendsto (cuspFunction 1 ((eisensteinSeries_MF hk a) ∘ ofComplex)) (𝓝[≠] 0) (𝓝 (@eisensteincoeff k 0)) := by sorry
+
+lemma obvsthing8 {q : ℂ}{k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) (hq : ‖q‖ < 1):
  HasSum (fun n : ℕ ↦ (@eisensteincoeff k n • q ^ n)) (SlashInvariantFormClass.cuspFunction 1 (eisensteinSeries_MF hk a) q) := by
-  sorry
+  rw [Summable.hasSum_iff]
+  symm
+  by_cases h : q ≠ 0
+  · unfold SlashInvariantFormClass.cuspFunction
+    rw [Function.Periodic.cuspFunction_eq_of_nonzero]
+    have : ((eisensteinSeries_MF hk a) ∘ ↑ofComplex) (Periodic.invQParam ((1 : ℕ): ℝ) q) =
+       (eisensteinSeries_MF hk a) (ofComplex (Periodic.invQParam ((1 : ℕ): ℝ) q) ) := by
+       subst keven
+       simp_all only [ne_eq, PNat.val_ofNat, Nat.cast_one, comp_apply]
+    rw [this]
+    simp only [Nat.cast_one]
+    rw [eisensteinSeries_is_tsum_eisensteincoeff' hk a keven]
+    field_simp
+    congr
+    ext n
+    subst keven
+    simp_all only [ne_eq, PNat.val_ofNat, Nat.cast_one, comp_apply, mul_eq_mul_left_iff]
+    simp_all only [Nat.cast_mul, Nat.cast_ofNat]
+    left
+    have : cexp (2 * ↑π * i * (ofComplex (Periodic.invQParam 1 q))) ^ n = 𝕢 1 (ofComplex (Periodic.invQParam 1 q)) ^ n := by
+      unfold Periodic.qParam
+      field_simp
+    --unfold Periodic.invQParam
+    rw [this]
+    push_neg at h
+    have hh : (1 : ℝ)≠ 0 := by simp only [ne_eq, one_ne_zero, not_false_eq_true]
+    have fact1 : ofComplex (Periodic.invQParam 1 q) = Periodic.invQParam 1 q := by
+      simp_all only [ne_eq, one_ne_zero, not_false_eq_true]
+      sorry/- ?-/
+    rw [fact1]
+    rw [Periodic.qParam_right_inv hh h]
+    apply h
+  · push_neg at h
+    rw [h]
+    unfold SlashInvariantFormClass.cuspFunction
+    rw_mod_cast [Periodic.cuspFunction_zero_eq_limUnder_nhds_ne 1 ((eisensteinSeries_MF hk a) ∘ ↑ofComplex)]
+    simp only [PNat.val_ofNat, Nat.cast_pow, CharP.cast_eq_zero, smul_eq_mul]
+    refine Tendsto.limUnder_eq ?_
+    rw [Summable.tsum_eq_zero_add]
+    simp only [pow_zero, mul_one, ne_eq, Nat.add_eq_zero, one_ne_zero, and_false, not_false_eq_true,
+      zero_pow, mul_zero, tsum_zero, add_zero]
+    apply eisensteinSeriesCuspfunction_tendso_eisensteincoeff0 hk a keven
+    sorry --silly thing
+  · apply eisensteincoeff_isSummable q hk a keven
+
+lemma HasSumforCuspFunctionover_𝕢 {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+ HasSum (fun n : ℕ ↦ (@eisensteincoeff k n • 𝕢 1 z ^ n)) (SlashInvariantFormClass.cuspFunction 1 (eisensteinSeries_MF hk a) (𝕢 1 z)) := by
+  rw [Summable.hasSum_iff]
+  symm
+  convert SlashInvariantFormClass.eq_cuspFunction 1 (eisensteinSeries_MF hk a) z
+  symm
+  simp only [Nat.cast_one]
+  rw [eisensteinSeries_is_tsum_eisensteincoeff' hk a keven]
+  unfold Periodic.qParam
+  field_simp
+  apply eisensteincoeff_isSummable (𝕢 1 z) hk a keven
+
+
+lemma obvsthing9 {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+  HasSum (fun n : ℕ ↦ (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n • 𝕢 1 z ^ n) (∑' (n : ℕ), @eisensteincoeff k n * 𝕢 1 z ^ n) := by
+  unfold Periodic.qParam
+  simp only [PNat.val_ofNat, ofReal_one, div_one, smul_eq_mul]
+  convert @eisensteinSeries_is_tsum_eisensteincoeff' z k m hk a keven
+  ext  x
+  subst keven
+  simp_all only [PNat.val_ofNat]
+  apply Iff.intro
+  · intro a_1
+    sorry
+  · intro a_1
+    subst a_1
+    sorry
 
 open SlashInvariantFormClass
-
-theorem coeffiecients_cancel {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) : ∀ (n : ℕ), (@eisensteincoeff k n) -
-((qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n) = 0 := by
-
-  sorry
 
 noncomputable def eisensteinFormalMultilinearSeries {k : ℕ} : FormalMultilinearSeries ℂ ℂ ℂ :=
   fun m ↦ @eisensteincoeff k m • ContinuousMultilinearMap.mkPiAlgebraFin ℂ m ℂ
 
-lemma hasFPowerSeries_eisen {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)  :
+lemma hasFPowerSeries_eisen  {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)  :
     HasFPowerSeriesOnBall (cuspFunction 1 (eisensteinSeries_MF hk a)) (@eisensteinFormalMultilinearSeries k) 0 1 := by
     have h₁ : 1 ≤ ((@eisensteinFormalMultilinearSeries k)).radius := by sorry
     have h₂ :  (0 : ENNReal) < 1 := by simp
@@ -603,51 +1039,56 @@ lemma hasFPowerSeries_eisen {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZM
     rw [EMetric.mem_ball, edist_zero_right, enorm_eq_nnnorm, ENNReal.coe_lt_one_iff,
     ← NNReal.coe_lt_one, coe_nnnorm] at hy
     simp only [eisensteinFormalMultilinearSeries]
-    simpa [eisensteinFormalMultilinearSeries] using (obvsthing8 hk a keven)
+    simpa [eisensteinFormalMultilinearSeries] using (obvsthing8 hk a keven hy)
 
-theorem EisensteinserieshasFPsum  {k m : ℕ} {q : ℂ}  (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+theorem EisensteinserieshasFPsum  {k m : ℕ} {q : ℂ}  (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)(hq : ‖q‖ < 1) :
  cuspFunction 1 (eisensteinSeries_MF hk a) q = (@eisensteinFormalMultilinearSeries k).sum q := by
-  apply HasFPowerSeriesOnBall.unique (hasFPowerSeries_eisen hk a keven)
+  apply HasFPowerSeriesOnBall.unique (hasFPowerSeries_eisen hk a keven )
   convert FormalMultilinearSeries.hasFPowerSeriesOnBall (@eisensteinFormalMultilinearSeries k) _
   sorry --small things like radius arguments left
   sorry
   sorry
 
 
-lemma eisensteinseries_FpowerseriesOnBall_difference_hassum {k m : ℕ} {q : ℂ}  (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m): HasFPowerSeriesOnBall ( cuspFunction 1 (eisensteinSeries_MF hk a) -  cuspFunction 1 (eisensteinSeries_MF hk a))
+lemma eisensteinseries_FpowerseriesOnBall_difference_hassum {k m : ℕ}  (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)
+: HasFPowerSeriesOnBall ( cuspFunction 1 (eisensteinSeries_MF hk a) -  cuspFunction 1 (eisensteinSeries_MF hk a))
 ((@eisensteinFormalMultilinearSeries k) - (qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a))) 0 1 := by
   have h₁  :  1 ≤ ((@eisensteinFormalMultilinearSeries k) -
   (qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a))).radius := by sorry
   have h₂ :  (0 : ENNReal) < 1 := by simp
   refine ⟨h₁, h₂ ,  fun hy ↦ ?_⟩
   apply HasSum.sub
-  simpa [eisensteinFormalMultilinearSeries] using (obvsthing8 hk a keven)
-  simpa [qExpansionFormalMultilinearSeries] using (obvsthing' hk a keven)
+  · rw [EMetric.mem_ball, edist_zero_right, enorm_eq_nnnorm, ENNReal.coe_lt_one_iff,
+    ← NNReal.coe_lt_one, coe_nnnorm] at hy
+    simpa [eisensteinFormalMultilinearSeries] using (obvsthing8 hk a keven hy)
+  · rw [EMetric.mem_ball, edist_zero_right, enorm_eq_nnnorm, ENNReal.coe_lt_one_iff,
+    ← NNReal.coe_lt_one, coe_nnnorm] at hy
+    simpa [qExpansionFormalMultilinearSeries] using (obvsthing' hk a keven hy)
 
-theorem eisensteinseries_FpowerseriesAt_difference_hassum {k m : ℕ} {q : ℂ}  (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+theorem eisensteinseries_FpowerseriesAt_difference_hassum {k m : ℕ}  (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
  HasFPowerSeriesAt ( cuspFunction 1 (eisensteinSeries_MF hk a) -  cuspFunction 1 (eisensteinSeries_MF hk a))
 ((@eisensteinFormalMultilinearSeries k) - (qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a))) 0 := by
   use 1
-  apply eisensteinseries_FpowerseriesOnBall_difference_hassum hk a keven ; apply q
+  apply eisensteinseries_FpowerseriesOnBall_difference_hassum hk a keven
 
-theorem eisensteinSeries_Fpowerseries_difference_eq_zero {k m : ℕ} {q : ℂ}  (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+theorem eisensteinSeries_Fpowerseries_difference_eq_zero {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
  (@eisensteinFormalMultilinearSeries k) - (qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a)) = 0:= by
   apply HasFPowerSeriesAt.eq_zero
   rw [← sub_self (cuspFunction 1 (eisensteinSeries_MF hk a))]
-  apply eisensteinseries_FpowerseriesAt_difference_hassum hk a keven ; apply q
+  apply eisensteinseries_FpowerseriesAt_difference_hassum hk a keven
 
-theorem TheFPSeriesagree {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+theorem TheFPSeriesagree {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
   @eisensteinFormalMultilinearSeries k = qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a) := by
   have h : (@eisensteinFormalMultilinearSeries k) - (qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a)) = 0 := by
-    apply eisensteinSeries_Fpowerseries_difference_eq_zero hk a keven ; apply q
+    apply eisensteinSeries_Fpowerseries_difference_eq_zero hk a keven
   rw [← sub_eq_zero]
   apply h
 
-lemma TheFPSeriesagree2 {q : ℂ }{k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)  :
+lemma TheFPSeriesagree2 {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m)  :
  ∀ (n : ℕ), @eisensteinFormalMultilinearSeries k n =
  qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a) n := by
   apply FormalMultilinearSeries.ext_iff.mp
-  apply TheFPSeriesagree hk a keven ; apply q
+  apply TheFPSeriesagree hk a keven
 
 theorem mkPiAlgebra_eq_iff (n : ℕ)  {z₁ z₂ : ℂ} :
     z₁ • ContinuousMultilinearMap.mkPiAlgebraFin ℂ n ℂ  = z₂ • ContinuousMultilinearMap.mkPiAlgebraFin ℂ n ℂ ↔
@@ -675,10 +1116,10 @@ theorem mkPiAlgebra_eq_iff (n : ℕ)  {z₁ z₂ : ℂ} :
       subst a
       simp_all only
 
-theorem coeff_of_q_expansions_agree  {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
+theorem coeff_of_q_expansions_agree  {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
   (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ n = @eisensteincoeff k n := by
     have h₁ : @eisensteinFormalMultilinearSeries k n =
- qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a) n := by apply TheFPSeriesagree2 hk a keven ; apply q
+ qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a) n := by apply TheFPSeriesagree2 hk a keven
     unfold eisensteinFormalMultilinearSeries qExpansionFormalMultilinearSeries  at h₁
     rw [mkPiAlgebra_eq_iff] at h₁
     rw [h₁]
@@ -696,10 +1137,6 @@ lemma Sumequivoverq {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : 
     symm
     simp_rw [← smul_eq_mul ((2 * ↑π * i) ^ k * (↑(k - 1).factorial)⁻¹) _]
     rw [← tsum_const_smul'' ((2 * ↑π * i) ^ k * (↑(k - 1).factorial)⁻¹ )]
-    have : ∑' («i» : ℕ+), ((2 * ↑π * i) ^ k * (↑(k - 1).factorial)⁻¹) • ∑' (m : { x // x ∣ «i» }), ↑↑↑m ^ (k - 1) * 𝕢 1 ↑z ^ («i» : ℕ)
-    = ∑' («i» : ℕ), ((2 * ↑π * i) ^ k * (↑(k - 1).factorial)⁻¹) • ∑' (m : { x // x ∣ «i» +1 }), ↑↑↑m ^ (k - 1) * 𝕢 1 ↑z ^ ↑(«i» + 1) := by
-      sorry
-    rw [this]
     congr
     ext n
     rw [smul_mul_assoc]
@@ -709,8 +1146,7 @@ lemma Sumequivoverq {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : 
     rw [mul_comm, ← smul_eq_mul (𝕢 1 ↑z ^ (n + 1))]
     symm
     rw [← tsum_const_smul'' (𝕢 1 ↑z ^ (n + 1))]
-    simp_rw [mul_comm _ (𝕢 1 ↑z ^ (n + 1))]
-    rfl
+    simp_rw [mul_comm _ (𝕢 1 ↑z ^ (n + 1)),smul_eq_mul]
   · unfold Summable
     sorry
   · apply keven
@@ -754,7 +1190,6 @@ lemma eisensteinSeries_not_zero_at_infty1 {q : ℂ}{k m : ℕ} (hk : 3 ≤ (k : 
   push_neg
   rw [coeff_of_q_expansions_agree 0 hk a keven]
   apply Eisenstein_coeff_not_zero keven
-  repeat apply q
 
 
 lemma eisensteinSeries_nin_CuspForm_Subspace {q : ℂ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven :  k = 2 * m) :
@@ -785,21 +1220,50 @@ lemma eisensteinSeries_nin_CuspForm_Subspace {q : ℂ} {k m : ℕ} (hk : 3 ≤ (
     have h₃ : ¬ ∀ (A : SL(2, ℤ)), IsZeroAtImInfty ((eisensteinSeries_MF hk a) ∣[(k : ℤ)] A) := by apply eisensteinSeries_not_zero_at_infty1 hk a keven ; apply q
     contradiction
 
+instance modformascuspform {f : ModularForm Γ(1) k} (vanishatcusp : (∀ (A : SL(2, ℤ)),
+IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A))) : CuspForm Γ(1) k where
+  toFun := f.toSlashInvariantForm
+  slash_action_eq' := f.slash_action_eq'
+  holo' := f.holo'
+  zero_at_infty' := vanishatcusp
+
 lemma subspacelemma (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) (x : Subspace ℂ  (ModularForm Γ(1) k)) :
 x ≤ (Submodule.span ℂ {eisensteinSeries_MF hk a}) ↔
 ∀ f ∈ x, ∃ c : ℂ, f = c • (eisensteinSeries_MF hk a) := sorry
 
-lemma subspacelemma2 (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) (x : Subspace ℂ  (ModularForm Γ(1) k)) :
+lemma subspacelemma2  (x : Subspace ℂ  (ModularForm Γ(1) k)) :
 x ≤ CuspForm_Subspace Γ(1) k ↔
-∀ f ∈ x, ∀ (A : SL(2, ℤ)), IsZeroAtImInfty (f ∣[k] A) := sorry
-
+∀ f ∈ x, ∀ (A : SL(2, ℤ)), IsZeroAtImInfty (f ∣[k] A) := by
+  constructor
+  · intro h f h₁
+    have h₁ : f ∈ CuspForm_Subspace Γ(1) k := by apply h ; apply h₁
+    have h₂ : ∃ g : (CuspForm Γ(1) k), ((isom Γ(1) k).toFun g) = f := by
+      simp_all only [AddHom.toFun_eq_coe, LinearMap.coe_toAddHom, LinearEquiv.coe_coe]
+      exact h₁
+    obtain ⟨g, hg⟩ := h₂
+    rw [← hg]
+    convert g.zero_at_infty'
+  · intro h f h₁
+    have h₂ : f ∈ CuspForm_Subspace Γ(1) k := by
+        have h₂₁ : ∃ g : (CuspForm Γ(1) k), ((isom Γ(1) k).toFun g).1 = f := by
+          use modformascuspform (h f h₁)
+          rfl
+        apply h₂₁
+    apply h₂
 
 lemma EisensteinSeries_in_EisensteinSubspace (c : ℂ) (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
-c • (eisensteinSeries_MF hk a) ∈ Submodule.span ℂ {eisensteinSeries_MF hk a} := by sorry
+c • (eisensteinSeries_MF hk a) ∈ Submodule.span ℂ {eisensteinSeries_MF hk a} := by
+simp_all only [PNat.val_ofNat]
+apply SMulMemClass.smul_mem
+apply SetLike.mem_of_subset
+· apply Submodule.subset_span
+· simp_all only [Set.mem_singleton_iff]
 
 lemma eisensteinSubspace_vanishing_is_zero (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
 (f : ModularForm Γ(1) k) (finEis : f ∈  Submodule.span ℂ {eisensteinSeries_MF hk a})
 (fvanishes : ∀ (A : SL(2, ℤ)), IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A)) : f = 0 := sorry
+
+
 
 theorem eisensteinSeries_comp_CuspForm (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
 IsCompl (Submodule.span ℂ {eisensteinSeries_MF hk a}) (CuspForm_Subspace Γ(1) k) := by
@@ -808,7 +1272,7 @@ IsCompl (Submodule.span ℂ {eisensteinSeries_MF hk a}) (CuspForm_Subspace Γ(1)
   · unfold Disjoint
     intro x h₁ h₂
     rw [subspacelemma hk a] at h₁
-    rw [subspacelemma2 hk a] at h₂
+    rw [subspacelemma2] at h₂
     intro f h₄
     simp
     have h₅ : ∃ c : ℂ, f = c • (eisensteinSeries_MF hk a) := by apply h₁ f; apply h₄
@@ -820,8 +1284,34 @@ IsCompl (Submodule.span ℂ {eisensteinSeries_MF hk a}) (CuspForm_Subspace Γ(1)
     apply EisensteinSeries_in_EisensteinSubspace c hk a
     apply h₆
   · unfold Codisjoint
-    intro x h₁ h₂
-    sorry
+    intro x h₁ h₂ f h₃
+    by_cases h : (∀ (A : SL(2, ℤ)), IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A))
+    · have h₇ : f ∈ CuspForm_Subspace Γ(1) k := by
+        have h₇₁ : ∃ g : (CuspForm Γ(1) k), ((isom Γ(1) k).toFun g).1 = f := by
+          use modformascuspform h
+          rfl
+        apply h₇₁
+      simp_all only [PNat.val_ofNat, Submodule.span_singleton_le_iff_mem, Submodule.mem_top, SL_slash]
+      apply h₂
+      simp_all only
+    · have h₇ : f ∈ (Submodule.span ℂ {eisensteinSeries_MF hk a}) := by
+        sorry --This is important
+      simp_all only [PNat.val_ofNat, Submodule.span_singleton_le_iff_mem,
+      Submodule.mem_top, SL_slash, not_forall]
+      obtain ⟨w, h⟩ := h
+      apply h₇
+      simp_all only [Set.singleton_subset_iff, SetLike.mem_coe,
+      Set.mem_setOf_eq, Set.mem_range]
+      apply Exists.intro
+      · ext x_1 : 1
+        simp_all only [Set.mem_iInter, SetLike.mem_coe]
+        apply Iff.intro
+        intro a_1
+        on_goal 2 => {
+          intro a_1 «i»
+          exact a_1
+        }
+        simp_all only [forall_const]
 
 instance idℂ : ℂ ≃* ℂ where
   toFun := fun z ↦ z
@@ -837,7 +1327,9 @@ lemma idinj : Bijective idℂ := by apply idℂ.bijective
 lemma rank_ModulaForm_equiv_prod (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
 Module.rank ℂ ((Submodule.span ℂ {eisensteinSeries_MF hk a}) × (CuspForm_Subspace Γ((1 : ℕ+)) k))
 = Module.rank ℂ (ModularForm Γ(↑1) k) := by
-  apply rank_eq_of_equiv_equiv idℂ (LinearEquiv.toAddEquiv (Submodule.prodEquivOfIsCompl (Submodule.span ℂ {(eisensteinSeries_MF hk a : (ModularForm Γ((1 : ℕ+)) k))}) (CuspForm_Subspace Γ((1 : ℕ+)) k)  (eisensteinSeries_comp_CuspForm hk a) ) )
+  apply rank_eq_of_equiv_equiv idℂ (LinearEquiv.toAddEquiv (Submodule.prodEquivOfIsCompl
+  (Submodule.span ℂ {(eisensteinSeries_MF hk a : (ModularForm Γ((1 : ℕ+)) k))})
+  (CuspForm_Subspace Γ((1 : ℕ+)) k)  (eisensteinSeries_comp_CuspForm hk a) ) )
   apply idinj
   intro r m
   simp [idℂ]
