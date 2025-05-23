@@ -70,13 +70,13 @@ def delta_CF: CuspForm Γ(1) 12 where
   slash_action_eq' := delta_SIF.slash_action_eq'
   holo' := by
     intro z
-    -- Why doesn't this work ?!
-    -- suffices DifferentiableAt ℂ (delta ∘ UpperHalfPlane.ofComplex) z.val by
-    --   convert MDifferentiableAt.comp z (DifferentiableAt.mdifferentiableAt this)
-    --     z.mdifferentiable_coe
-    --   exact funext fun _ ↦ comp _ _
     have : DifferentiableAt ℂ (delta ∘ UpperHalfPlane.ofComplex) z.val := by
-      rw [delta]
+      unfold delta
+      apply DifferentiableAt.pow
+      apply DifferentiableOn.differentiableAt eta_differentiableOn_upperHalfPlane
+      apply IsOpen.mem_nhds 
+      exact isOpen_lt continuous_const continuous_im
+      exact z.property
     have := MDifferentiableAt.comp z (DifferentiableAt.mdifferentiableAt this) z.mdifferentiable_coe
     rwa [show (delta ∘ UpperHalfPlane.ofComplex) ∘ Subtype.val = delta by
       exact funext fun _ ↦ comp_ofComplex _ _
