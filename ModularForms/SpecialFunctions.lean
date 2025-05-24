@@ -239,15 +239,36 @@ lemma cotagent_as_exp1 {z : ℍ} :  π * i * (cexp (π * i * z) + cexp (- π * i
     _ = - 2 * π * i *cexp (2 * π * i * z) / (1-cexp (2* π * i * z) ) -  π * i := by sorry -- I love cexp
     _ = - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by ring_nf
 
-lemma cexp_is_sum (z : ℍ) : HasSum (fun n : ℕ => cexp (2 * π * i * (n + 1)  *z)) (cexp (2 * π * i  *z) / ( 1 - cexp (2 * π * i *z))) := by
-  have cexp_norm : ∀ z : ℍ, ∀ n : ℕ, ‖cexp (2 * π * i * n *z)‖ < 1 := sorry
-  sorry
+lemma cexp_series_HasSum (z : ℍ) : HasSum (fun n : ℕ => cexp (2 * π * i *z)^n) (1 - cexp (2 * π * i *z))⁻¹ := by
+  have cexp_norm : ∀ τ: ℍ, ‖cexp (2 * π * i *τ)‖ < 1 := by
+    intro τ
+    have cexp_isreal : ‖cexp (2 * π * i *τ)‖ = Real.exp (-2 * π * im (τ : ℂ) :) := by
+      simp only [norm_exp, div_ofReal_re, mul_re, re_ofNat, ofReal_re, im_ofNat, ofReal_im,
+      mul_zero, sub_zero, Complex.I_re, mul_im, zero_mul, add_zero, Complex.I_im, mul_one, sub_self, zero_sub,
+      neg_mul]
+    rw [cexp_isreal]
+    simp_all only [neg_mul, coe_im, exp_lt_one_iff, Left.neg_neg_iff, gt_iff_lt]
+    have τim : τ.im > 0 := τ.2 --apply UpperHalfPlane.im_pos
+    have : 2 * π > 0 := by simp only [gt_iff_lt, Nat.ofNat_pos, mul_pos_iff_of_pos_left] ; apply Real.pi_pos
+    simp_all only [gt_iff_lt, Nat.ofNat_pos, mul_pos_iff_of_pos_left]
+  apply hasSum_geometric_of_norm_lt_one (cexp_norm z)
+
+lemma cexp_eq_sum (z : ℍ) : cexp (2 * π * i  *z) / ( 1 - cexp (2 * π * i *z)) = ∑' n : ℕ, cexp (2 * π * i * (n + 1) * z) := by
+  calc
+    cexp (2 * π * i  *z) / ( 1 - cexp (2 * π * i *z)) = cexp (2 * π * i  *z) * ( 1 - cexp (2 * π * i *z))⁻¹ := by ring_nf
+    _ =  cexp (2 * π * i  *z) * ∑' n : ℕ, cexp (2 * π * i *z)^n := by rw [← HasSum.tsum_eq (cexp_series_HasSum z) ]
+    _ = cexp (2 * π * i  *z) • ∑' n : ℕ, cexp (2 * π * i *z)^n := by rw [← smul_eq_mul]
+    _ = ∑' n : ℕ, cexp (2 * π * i  *z) • cexp (2 * π * i *z)^ n := by rw [Summable.tsum_const_smul] ; use (1 - cexp (2 * π * i *z))⁻¹ ; convert (cexp_series_HasSum z)
+    _ = ∑' n : ℕ, cexp (2 * π * i  *z) * cexp (2 * π * i *z)^ n := by simp_rw [smul_eq_mul]
+    _ = ∑' n : ℕ,  cexp (2 * π * i *z)^ (n + 1) := by ring_nf
+    _ = ∑' n : ℕ,  cexp (2 * π * i *z)^ (n + 1 : ℤ) := by norm_cast
+    _ = ∑' n : ℕ,  cexp (2 * π * i * (n + 1 ) * z) := by simp_rw [← Complex.exp_int_mul (2 * π * i * z) _] ; norm_cast ; congr ; ext x ; ring_nf
 
 lemma cotagent_as_exp2 {z : ℍ} : - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) =
 - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
   have : - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) = - π * i - 2 * π * i * (cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) )) := by ring_nf
   rw [this]
-  rw [← HasSum.tsum_eq (cexp_is_sum z) ]
+  rw [cexp_eq_sum z]
 
 lemma cotangent_dirichlet_expansion''  (z : ℍ) : (π * cot (π * z) - 1 / (z : ℂ))  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
   calc
