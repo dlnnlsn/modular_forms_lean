@@ -465,14 +465,46 @@ lemma rw_of_cotangent_base_case :
   rw [← h₉]
   norm_cast
 
-lemma cotagent_derivative_formula {k : ℕ} (hk : 2 ≤ k) :  ∀ z : ℍ, ((k - 1).factorial) * ∑' x : ℤ, 1/((z:ℂ) + (x : ℂ))^((k: ℤ)) =  (2*π*i)^ k * ∑' d : ℕ, (d + 1) ^ (k - 1) * Complex.exp (2*π*i*(d + 1)*z) := by
+lemma cotagent_derivative_formula {k : ℕ} (hk : 2 ≤ k) :
+∀ z : ℍ, ((k - 1).factorial) * ∑' x : ℤ, 1/((z:ℂ) + (x : ℂ))^((k: ℤ)) =
+   (2*π*i)^ k * ∑' d : ℕ, (d + 1) ^ (k - 1) * Complex.exp (2*π*i*(d + 1)*z) := by
   induction' k with l ih
   linarith
   intro τ
-  have h₃ : ∀ z : ℂ, HasDerivAt (fun z => ((l - 1).factorial : ℤ) * ∑' (x : ℤ), 1/((ofComplex z : ℂ) + x) ^ ((l : ℤ))) ( (l + 1 - 1).factorial * ∑' (n : ℤ), (1 / ((ofComplex z : ℂ) + (↑n))^(l + 1))) z := by sorry
-  have h₄ : ∀ z : ℂ, HasDerivAt (fun z => (2 * π * i) ^ (l : ℤ) * ∑' (d : ℕ), ((d :ℤ) + 1) ^ (l - 1) * cexp (2 * π * i * ((d :ℤ) + 1) * (ofComplex z : ℂ))) ((2 * π * i) ^ (l + 1: ℤ) * ∑' (d : ℕ), ((d :ℤ) + 1) ^ (l) * cexp (2 * π * i * ((d :ℤ) + 1) * (ofComplex z : ℂ))) z := by sorry
-  have deriv_ih : 2 ≤ l → (deriv (fun z => ((l - 1).factorial : ℤ) * ∑' (x : ℤ), 1/((ofComplex z : ℂ) + x) ^ ((l : ℤ)))) τ
-   = deriv (fun z => (2 * π * i) ^ (l : ℤ) * ∑' (d : ℕ), ((d :ℤ) + 1) ^ (l - 1) * cexp (2 * π * i * ((d :ℤ) + 1) * (ofComplex z : ℂ))) τ := by
+  have h₃ : ∀ z : ℂ, HasDerivAt (fun z => ((l - 1).factorial : ℤ) *
+  ∑' (x : ℤ), 1/((ofComplex z : ℂ) +x) ^ ((l : ℤ)))
+    ( (l + 1 - 1).factorial * ∑' (n : ℤ), (1 / ((ofComplex z : ℂ) +
+(↑n))^(l + 1))) z := by
+      intro τ
+      simp_rw [← smul_eq_mul]
+      have : (fun z ↦ ((l - 1).factorial : ℂ) • ∑' (x : ℤ), 1 / ((ofComplex z : ℂ) + (x :ℂ)) ^ ↑l )=fun z ↦  ∑' (x : ℤ),(l - 1).factorial • 1 / ((ofComplex z :ℂ) + (x : ℂ) ) ^ ↑l := by
+          simp only [one_div,
+        nsmul_eq_mul, mul_one]
+          simp_all only [zpow_natCast, one_div, Nat.reduceLeDiff]
+          sorry
+      rw_mod_cast [this]
+      have : (((l + 1 - 1).factorial : ℂ) • ∑' (n : ℤ), 1 / ((ofComplex τ : ℂ) + ↑n) ^ (l + 1))
+       = ∑' (n : ℤ), (((l + 1 - 1).factorial : ℂ) • 1 / ((ofComplex τ : ℂ) + ↑n) ^ (l + 1)) := by
+        sorry
+      rw_mod_cast [this]
+      have summablehyp : ∀ x : ℤ, ∀ τ : ℂ,  HasDerivAt (fun z => (l - 1).factorial •
+      1 / (((PartialHomeomorph.toFun' ofComplex) z : ℂ ) + ↑x) ^ l ) ((l + 1 - 1).factorial •
+       1 / (((PartialHomeomorph.toFun' ofComplex) τ : ℂ) +
+       (x : ℂ)) ^ (l + 1)) τ := by sorry
+      have hg0 : Summable (fun x : ℤ => (l - 1).factorial •
+      1 / (((PartialHomeomorph.toFun' ofComplex) τ : ℂ ) + ↑x) ^ l ) := by sorry
+      have hu : Summable fun x : ℤ => ‖ (((l + 1 - 1).factorial) : ℂ) •
+       1 / ((PartialHomeomorph.toFun' ofComplex) τ : ℂ)‖ := by sorry
+      refine hasDerivAt_tsum hu summablehyp ?_ hg0 τ
+      · sorry --nonsense for now regarding norm bound
+  have h₄ : ∀ z : ℂ, HasDerivAt (fun z => (2 * π * i) ^ (l : ℤ) * ∑' (d : ℕ), ((d :ℤ) +
+   1) ^ (l - 1) * cexp (2 * π * i * ((d :ℤ) + 1) *
+   (ofComplex z : ℂ))) ((2 * π * i) ^ (l + 1: ℤ) * ∑' (d : ℕ), ((d :ℤ) + 1) ^ (l) *
+   cexp (2 * π * i * ((d :ℤ) + 1) * (ofComplex z : ℂ))) z := by sorry
+  have deriv_ih : 2 ≤ l → (deriv (fun z => ((l - 1).factorial : ℤ) *
+   ∑' (x : ℤ), 1/((ofComplex z : ℂ) + x) ^ ((l : ℤ)))) τ
+   = deriv (fun z => (2 * π * i) ^ (l : ℤ) * ∑' (d : ℕ), ((d :ℤ) + 1) ^ (l - 1) *
+   cexp (2 * π * i * ((d :ℤ) + 1) * (ofComplex z : ℂ))) τ := by
     intro hyp
     congr
     ext τ
@@ -485,6 +517,7 @@ lemma cotagent_derivative_formula {k : ℕ} (hk : 2 ≤ k) :  ∀ z : ℍ, ((k -
   norm_cast
   rw [deriv_ih]
   norm_cast
+
 
 lemma rw_of_cotangent {k : ℕ } (hk : 2 ≤ k) :
  ∑' x : ℤ, ((z:ℂ) + (x : ℂ))^(-(k : ℤ)) =

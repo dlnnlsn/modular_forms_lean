@@ -1,20 +1,17 @@
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Analysis.Asymptotics.Defs
 import Mathlib.Analysis.Complex.LocallyUniformLimit
-import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Topology
 import Mathlib.Analysis.PSeries
-import Mathlib.Analysis.SpecificLimits.RCLike
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.EulerSineProd
-import Mathlib.Order.Filter.AtTopBot.Defs
-import Mathlib.Topology.Algebra.InfiniteSum.Defs
 import Mathlib.Topology.Algebra.InfiniteSum.UniformOn
-import Mathlib.Topology.Defs.Filter
-import Mathlib.Data.Complex.Trigonometric
+import Mathlib.Analysis.Calculus.SmoothSeries
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Cotangent
 import ModularForms.Analysis
-import ModularForms.Asymptotics
+
+
 
 open Real Complex UpperHalfPlane Filter Function Topology
+
+
 
 theorem multipliableLocallyUniformlyOn_euler_sinc_prod :
     MultipliableLocallyUniformlyOn (fun n : ℕ ↦ fun z : ℂ ↦ 1 - z^2 / (n + 1)^2) ⊤ := by
@@ -22,7 +19,7 @@ theorem multipliableLocallyUniformlyOn_euler_sinc_prod :
   apply (tendstoLocallyUniformlyOn_iff_forall_isCompact _).mpr
   intro K _ Kcompact
   obtain ⟨B, hB⟩ := Kcompact.exists_bound_of_continuousOn continuousOn_id
-  let u (n : ℕ) := B^2 / (n + 1)^2 
+  let u (n : ℕ) := B^2 / (n + 1)^2
   have hu: Summable u := by
     apply Summable.mul_left
     exact_mod_cast (summable_nat_add_iff 1).mpr (summable_nat_pow_inv.mpr one_lt_two)
@@ -49,12 +46,12 @@ theorem tendsto_locally_uniformly_euler_sin_prod :
     (fun z ↦ sin (π * z)) atTop ⊤ := by
   have h_top_open : IsOpen (⊤ : Set ℂ) := by simp
   apply (tendstoLocallyUniformlyOn_iff_forall_isCompact h_top_open).mpr
-  intro K Ksub Kcompact 
+  intro K Ksub Kcompact
   have h_tendsto_unif := (tendstoLocallyUniformlyOn_iff_forall_isCompact h_top_open).mp
     multipliableLocallyUniformlyOn_euler_sinc_prod.hasProdLocallyUniformlyOn K Ksub Kcompact
   simp_rw [Complex.euler_sin_tprod]
   apply TendstoUniformlyOn.mul₀_of_continuousOn_of_compact (TendstoUniformlyOn.of_const _ _ _)
-    h_tendsto_unif (continuous_mul_left (π : ℂ)).continuousOn _ Kcompact 
+    h_tendsto_unif (continuous_mul_left (π : ℂ)).continuousOn _ Kcompact
   apply h_tendsto_unif.continuousOn
   filter_upwards with n
   exact continuousOn_finset_prod _ fun i _ ↦ Continuous.continuousOn (by continuity)
@@ -75,7 +72,7 @@ lemma cotangent_terms_isBigO (z : ℂ) : (fun n : ℕ ↦ 1/(z + (n + 1)) + 1/(z
     exact hn <|  eq_neg_of_add_eq_zero_left heq
   have h_eventually_minus_nonzero : ∀ᶠ n : ℕ in atTop, (z - (n + 1)) ≠ 0 := by
     filter_upwards [eventually_ne_atTop (z - 1)] with n hn heq
-    apply Lean.Grind.CommRing.sub_eq_zero_iff.mp at heq 
+    apply Lean.Grind.CommRing.sub_eq_zero_iff.mp at heq
     exact hn <| Eq.symm <| Lean.Grind.CommRing.sub_eq_iff.mpr heq
   have h_eventually_prod_nonzero : ∀ᶠ n : ℕ in atTop, (n + 1)^2 - z^2 ≠ 0 := by
     filter_upwards [h_eventually_plus_nonzero, h_eventually_minus_nonzero] with n hnp hnm heq
@@ -104,7 +101,7 @@ lemma cotangent_terms_isBigO (z : ℂ) : (fun n : ℕ ↦ 1/(z + (n + 1)) + 1/(z
     _ ≥ ((n : ℝ) + 1)^2 - ((n : ℝ) + 1)^2 / 4 := by
       apply ge_iff_le.mpr
       apply sub_le_sub_left
-      rw [norm_pow] 
+      rw [norm_pow]
       convert (sq_le_sq₀ ?_ ?_).mpr (show ‖z‖ ≤ ((n : ℝ) + 1) / 2 by linarith)
       ring
       all_goals positivity
@@ -119,7 +116,7 @@ theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
   have h_differentiable (n : ℕ) : Differentiable ℂ (fun (z : ℂ) ↦ 1 - z^2 / (n + 1)^2) :=
     Differentiable.const_sub (Differentiable.div_const (differentiable_pow _) _) _
   have h_prod_differentiable (s : Finset ℕ) : Differentiable ℂ
-      (fun z: ℂ ↦ ∏ k ∈ s, (1 - z^2 / (k + 1)^2)) := 
+      (fun z: ℂ ↦ ∏ k ∈ s, (1 - z^2 / (k + 1)^2)) :=
     Differentiable.finset_prod fun n _ ↦ h_differentiable n
   have h_prod_eventually_differentiable : ∀ᶠ (s : Finset ℕ) in atTop, DifferentiableOn ℂ
       (fun z: ℂ ↦ π * z * ∏ k ∈ s, (1 - z^2 / (k + 1)^2)) ⊤ :=  by
@@ -133,7 +130,7 @@ theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
     apply mul_right_cancel₀ (ofReal_ne_zero.mpr pi_ne_zero) at heq
     exact h n heq
   have hlog_deriv := Complex.logDeriv_tendsto _ _ h_top_open
-    z_wrapped tendsto_locally_uniformly_euler_sin_prod 
+    z_wrapped tendsto_locally_uniformly_euler_sin_prod
     h_prod_eventually_differentiable h_sin_nonzero
   rw [show logDeriv (fun z ↦ Complex.sin (π * z)) z = π * Complex.cot (π * z) by
     have hlog_deriv := logDeriv_comp (x := z) (Complex.differentiableAt_sin)
@@ -172,7 +169,7 @@ theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
     rw [sq_sub_sq] at heq
     rcases mul_eq_zero.mp heq with heq | heq
     apply hadd_nonzero k
-    rwa [add_comm] 
+    rwa [add_comm]
     apply hsub_nonzero k
     apply congrArg (-·) at heq
     rw [←Lean.Grind.CommRing.neg_zero, ←heq]
@@ -180,7 +177,7 @@ theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
   suffices hlog_deriv : ∀ s : Finset ℕ,
       logDeriv (fun z : ℂ ↦ π * z * ∏ k ∈ s, (1 - z^2 / (k + 1)^2)) z_wrapped =
       1/z + ∑ k ∈ s, (1 / (z + (k + 1)) + 1 / (z - (k + 1))) by
-    simp_rw [hlog_deriv] 
+    simp_rw [hlog_deriv]
     apply Tendsto.const_add
     apply Summable.hasSum
     refine summable_of_isBigO_nat ?_ (cotangent_terms_isBigO z)
@@ -220,9 +217,48 @@ theorem cotangent_expansion_H (z: ℍ): π * cot (π * z) = 1/z + ∑' k: ℕ, (
     exact (lt_self_iff_false 0).mp <| lt_of_lt_of_eq (im_pos z) heq
   exact cotangent_expansion z h_non_int
 
+notation "i" => Complex.I
+lemma cotagent_as_exp {z : ℍ}: (π * cot (π * z) - 1 / (z : ℂ)) =
+π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by rw [Complex.cot_pi_eq_exp_ratio] ; field_simp ; ring_nf ; sorry
+
+lemma cotagent_as_exp1 {z : ℍ} :  π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) =
+- π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by
+  calc
+    π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) =
+    π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) * cexp (π * i * z) / cexp (π * i * z) := by simp
+    _ = π * i * (cexp (π * i * z) * cexp (π * i * z)  + cexp (- π * i * z)* cexp (π * i * z) ) / (cexp (π * i * z) * cexp (π * i * z) - cexp (-π * i * z) * cexp (π * i * z)) := by
+      /- not-/ sorry
+    _ = π * i * (cexp (2 * π * i * z)  + 1 ) / (cexp (2* π * i * z) - 1) := by
+        simp_rw [← Complex.exp_add]
+        simp only [neg_mul, neg_add_cancel, Complex.exp_zero]
+        ring_nf
+    _ = π * i * (cexp (2 * π * i * z) + cexp (2 * π * i * z) - cexp (2 * π * i * z)  + 1 ) / (cexp (2* π * i * z) - 1) := by simp only [add_sub_cancel_right]
+    _ = π * i * (2 * cexp (2 * π * i * z) -  (cexp (2 * π * i * z) - 1) ) / (cexp (2* π * i * z) - 1) := by sorry --obvious
+    _ = (2 * π * i *cexp (2 * π * i * z) - π * i * (cexp (2 * π * i * z) - 1)) / (cexp (2* π * i * z) - 1) := by ring_nf
+    _ = 2 * π * i *cexp (2 * π * i * z) / (cexp (2* π * i * z) - 1) -  π * i := by sorry
+    _ = - 2 * π * i *cexp (2 * π * i * z) / (1-cexp (2* π * i * z) ) -  π * i := by sorry -- I love cexp
+    _ = - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by ring_nf
+
+lemma cexp_is_sum (z : ℍ) : HasSum (fun n : ℕ => cexp (2 * π * i * (n + 1)  *z)) (cexp (2 * π * i  *z) / ( 1 - cexp (2 * π * i *z))) := by
+  have cexp_norm : ∀ z : ℍ, ∀ n : ℕ, ‖cexp (2 * π * i * n *z)‖ < 1 := sorry
+  sorry
+
+lemma cotagent_as_exp2 {z : ℍ} : - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) =
+- π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
+  have : - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) = - π * i - 2 * π * i * (cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) )) := by ring_nf
+  rw [this]
+  rw [← HasSum.tsum_eq (cexp_is_sum z) ]
+
+lemma cotangent_dirichlet_expansion''  (z : ℍ) : (π * cot (π * z) - 1 / (z : ℂ))  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
+  calc
+    (π * cot (π * z) - 1 / (z : ℂ)) = π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by apply cotagent_as_exp
+    _  = - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by apply cotagent_as_exp1
+    _  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by apply cotagent_as_exp2
+
 theorem cotangent_dirichlet_expansion (z: ℍ): cot z = -Complex.I - 2 * π * Complex.I * ∑' d: ℕ, Complex.exp (2 * π * Complex.I * (d + 1) * z) := by
   sorry
 
 theorem cotangent_dirichlet_expansion' (z: ℂ) (h: z.im > 0): cot z = -Complex.I - 2 * π * Complex.I * ∑' d: ℕ, Complex.exp (2 * π * Complex.I * (d + 1) * z) :=
   cotangent_dirichlet_expansion { val := z, property := h }
 
+#min_imports
