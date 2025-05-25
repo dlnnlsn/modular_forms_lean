@@ -4,6 +4,7 @@ import Mathlib.NumberTheory.ModularForms.EisensteinSeries.Basic
 import Mathlib.Topology.MetricSpace.Polish
 import Mathlib.NumberTheory.ZetaValues
 import Mathlib.Analysis.Calculus.SmoothSeries
+import ModularForms.SpecialFunctions
 
 
 
@@ -23,7 +24,7 @@ variable {z : ℍ}
 
 local notation "I∞" => comap Complex.im atTop
 local notation "𝕢" => Periodic.qParam
-notation "i" => Complex.I
+local notation "i" => Complex.I
 
 instance fintoprod : (Fin 2 → ℤ) ≃ ℤ × ℤ where
   toFun := fun v => (v 0, v 1)
@@ -271,7 +272,6 @@ lemma eisensteinseries_splitoff_zeta_fun {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+))
  ext τ
  rw [eisensteinseries_splitoff_zeta]
 
-#check hasSum_zeta_nat
 lemma DoubleSUm_relatesto_Bernoulli {k m: ℕ} (a : Fin 2 → ZMod (1:ℕ+)) (keven : k = 2 * m) (mne0 : m ≠ 0):
 ∑' x : {x : ℤ × ℤ | x ≠ 0}, (x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ ) =
    ((-1 : ℝ) ^ (k / 2 + 1) * (2 : ℝ) ^ (k - 1) * π ^ (k) *
@@ -442,70 +442,6 @@ lemma eisensteinSeries_expand {k m: ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:�
     simp_all only [ne_eq, mul_eq_zero, OfNat.ofNat_ne_zero, or_self, not_false_eq_true]
   · subst keven
     simp_all only [ne_eq, mul_eq_zero, OfNat.ofNat_ne_zero, or_self, not_false_eq_true]
-/-
-theorem cotagent_Formula_HasSum: HasSum (fun (n : ℕ) => 1 / ((z : ℂ) -
-(n + 1)) + 1 / ((z : ℂ) + (n + 1))) (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by
-  sorry
-
-theorem cotagent_formula : ∑' (n : ℕ), (1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) = (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by
-  convert HasSum.tsum_eq cotagent_Formula_HasSum
-
-lemma cotagent_as_exp : (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) =
-π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by sorry
-
-lemma cotagent_as_exp1 :  π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) =
-- π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by sorry
-
-lemma cotagent_as_exp2 : - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) =
-- π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by sorry
--/
-lemma cotagent_as_exp3 : (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ))  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
-  sorry --calc
-  --  (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) = π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by apply cotagent_as_exp
-  --  _  = - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by apply cotagent_as_exp1
-  --  _  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by apply cotagent_as_exp2
-
--- ## Dylan's code
-theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
-    π * cot (π * z) = 1/z + ∑' k : ℕ, (1/(z + (k + 1)) + 1/(z - (k + 1))) := by sorry
-
--- ## deriv_pow
---DELETE I THINK
-lemma rw_of_cotangent_base_case :
- ∑' x : ℤ, ((z:ℂ) + (x : ℂ))^(- 2 : ℤ) =
- (2*π*i)^ 2* ∑' d : ℕ, (d + 1) * Complex.exp (2*π*i*(d + 1)*z) := by
- sorry --completed by Dylan already
- /-
-  have h : ∀ z : ℍ, ∑' (n : ℕ), (1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) = (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by intro τ ; convert cotagent_formula
-  symm
-  simp_rw [cotagent_as_exp3] at h
-  have h₁ : ∀ z : ℍ, HasDerivAt (fun τ : ℂ => -π *i) 0 z := by sorry
-  have h₂ {d : ℤ} : ∀ z : ℍ, HasDerivAt (fun z => 2 * π * i * (d + 1) * (z : ℂ))
-    (2 * π * i * (d + 1)) z := by
-    intro τ
-    simp_rw [mul_comm ( 2 * ↑π * i * (d + 1))]
-    apply hasDerivAt_mul_const ( 2 * ↑π * i * (d + 1))
-  have h₂₁ {d : ℤ} : ∀ z : ℍ,HasDerivAt (fun z => cexp (2 * ↑π * i * (d + 1) * (z : ℂ)))
-    ( cexp (2 * ↑π * i * (d + 1) * (z : ℂ)) * (2 * ↑π * i * (d + 1))) z := by
-    intro τ
-    apply HasDerivAt.cexp (h₂ τ)
-  have h₃ {d : ℤ} : ∀ z : ℂ,HasDerivAt (fun z =>  2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (ofComplex z))) ((2 * ↑π * i) ^ 2 * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (ofComplex z : ℂ))) z := by sorry
-  have h₄ {d : ℤ} : ∀ z : ℂ,HasDerivAt (fun z => (1 / ((z : ℂ)))) (1 / (z : ℂ) ^ 2) z := by sorry
-  have h₅ : ∀ z : ℂ, HasDerivAt (fun z  => ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)))) (∑' (n : ℕ), (1 / ((ofComplex z : ℂ) + (↑n + 1)) ^ 2)) z := by sorry
-  have h₆ : ∀ z : ℍ, HasDerivAt (fun z =>  ∑' (n : ℕ), (1 / ((z : ℂ) - (↑n + 1)) + 1 / ((z : ℂ) + (↑n + 1)))) (- ∑' (n : ℤ), (1 / ((z : ℂ) + (↑n))^2)) z := by sorry
-  have h₇ : ∀ z : ℍ, HasDerivAt (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (z : ℂ ))) (- (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * ↑z)) z := by sorry
-  have h₈ : ∀ z : ℍ, deriv (fun z  => ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)) + 1 / ((ofComplex z : ℂ) + (↑n + 1)))) z =
-  deriv (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * ↑(ofComplex z : ℂ))) z := by intro τ; congr; ext τ₁ ; simp_rw [h (ofComplex τ₁)]
-  have h₉ : - ∑' (n : ℤ), (1 / ((z : ℂ) + (↑n))^2) = - (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * z) := by rw [deriv_eq h₆] at h₈ ; symm ; rw [deriv_eq h₇] at h₈ ; simp only [ofComplex_apply] at h₈ ; rw [h₈]
-  rw [neg_mul,neg_inj] at h₉
-  simp_all only [one_div, neg_mul, forall_const, differentiableAt_const, zpow_neg]
-  symm
-  rw [← h₉]
-  norm_cast
--/
-
-lemma cotangent_dirichlet_expansion''  (z : ℍ) : (π * cot (π * z) - 1 / (z : ℂ))  =
- - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by sorry --already in special functions
 
 lemma cotagent_derivative_formula {k : ℕ} (hk : 2 ≤ k) :
 ∀ z : ℍ, ((k - 1).factorial) * ∑' x : ℤ, 1/((z:ℂ) + (x : ℂ))^((k: ℤ)) =
@@ -739,7 +675,8 @@ lemma eisensteinSeries_MF_is {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → Z
   apply eisenstein_sif_myqexpansion (by linarith) a keven mne0
 
 
-
+lemma test : 1 = 1 := by rfl
+--why are you building this???
 
 
 
