@@ -1,3 +1,4 @@
+import Mathlib.Analysis.Asymptotics.Defs
 import Mathlib.Analysis.RCLike.Basic
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.NormedSpace.FunctionSeries
@@ -370,3 +371,65 @@ theorem TendstoUniformly.of_const {α ι R : Type*} [UniformSpace R] (f : α →
 theorem TendstoUniformlyOn.of_const {α ι R : Type*} [UniformSpace R] (f : α → R) (l : Filter ι)
     (s : Set α) : TendstoUniformlyOn (fun (_ : ι) ↦ f) f l s :=
   (TendstoUniformly.of_const f l).tendstoUniformlyOn
+
+-- Based on a proof found on
+-- [Wikipedia](https://en.wikipedia.org/wiki/Iterated_limit#Moore-Osgood_theorem_for_interchanging_limits)
+theorem TendstoUniformlyOn.interchange_limits {ι R₁ R₂ : Type*} [Nonempty ι] [SemilatticeSup ι]
+    [NormedRing R₁] [NormedRing R₂] [CompleteSpace R₂] {a : ι → R₁ → R₂} {b : R₁ → R₂} {c : ι → R₂}
+    {l : Filter R₁} [l.NeBot] {s : Set R₁} (hb : TendstoUniformlyOn a b atTop s)
+    (hc : ∀ᶠ n in atTop, Tendsto (fun x ↦ a n x) l (𝓝 (c n))) (hs : s ∈ l):
+    ∃ L : R₂, Tendsto b l (𝓝 L) ∧ Tendsto c atTop (𝓝 L) := by
+  rw [tendstoUniformlyOn_iff] at hb
+  rw [eventually_atTop] at hc
+
+  obtain ⟨N₁, hN₁⟩ := hc  
+  have hcauchy : CauchySeq c := by
+    refine Metric.cauchySeq_iff'.mpr fun ε εpos ↦ ?_
+    obtain ⟨N₂, hN₂⟩ := eventually_atTop.mp <| hb (ε/4) (by positivity)
+    use max N₁ N₂
+    intro n hn
+    apply sup_le_iff.mp at hn
+    rw [dist_eq_norm]
+    have hdiff_tendsto : Tendsto (fun x ↦ ‖a n x - a (N₁ ⊔ N₂) x‖) l (𝓝 (‖c n - c (N₁ ⊔ N₂)‖)) :=
+      Tendsto.norm <| Tendsto.sub (hN₁ n hn.left) (hN₁ _ le_sup_left)
+    refine lt_of_le_of_lt (tendsto_le_of_eventuallyLE hdiff_tendsto tendsto_const_nhds ?_)
+      (div_two_lt_of_pos εpos)
+    filter_upwards [hs] with x hx
+    apply le_of_lt
+    calc
+      ‖a n x - a (N₁ ⊔ N₂) x‖ = ‖(a n x - b x) - (a (N₁ ⊔ N₂) x - b x)‖ := by
+        apply congrArg
+        rw [sub_sub_sub_cancel_right]
+      _ ≤ ‖a n x - b x‖ + ‖a (N₁ ⊔ N₂) x - b x‖ := norm_sub_le _ _
+      _ = dist (b x) (a n x) + dist (b x) (a (N₁ ⊔ N₂) x) := by
+        rw [norm_sub_rev, ←dist_eq_norm, norm_sub_rev, ←dist_eq_norm]
+      _ < ε/4 + ε/4 := by
+        apply add_lt_add
+        exact hN₂ n hn.right x hx
+        exact hN₂ (N₁ ⊔ N₂) le_sup_right x hx
+      _ = ε/2 := by ring
+  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
+  refine ⟨L, ⟨?_, hL⟩⟩
+  refine Metric.tendsto_nhds.mpr fun ε εpos ↦ ?_
+  obtain ⟨N₃, hN₃⟩ :=  eventually_atTop.mp <| Metric.tendsto_nhds.mp hL (ε/3) (by positivity)
+  obtain ⟨N₂, hN₂⟩ := eventually_atTop.mp <| hb (ε/3) (by positivity)
+  let n := max (max N₁ N₂) N₃
+  replace hN₁ := hN₁ n (le_sup_of_le_left le_sup_left)
+  replace hN₂ := hN₂ n (le_sup_of_le_left le_sup_right)
+  replace hN₃ := hN₃ n le_sup_right
+  rw [Metric.tendsto_nhds] at hN₁
+  filter_upwards [hN₁ (ε/3) (by positivity), hs] with x hx_dist hx_elem
+  calc
+    dist (b x) L = ‖(b x - a n x) + (a n x - c n) + (c n - L)‖ := by
+      rw [dist_eq_norm, sub_add_sub_cancel, sub_add_sub_cancel]
+    _ ≤ ‖b x - a n x‖ + ‖a n x - c n‖ + ‖c n - L‖ := by
+      refine le_trans (norm_add_le _ _) ?_
+      apply add_le_add_right <| norm_add_le _ _
+    _ < ε/3 + ε/3 + ε/3 := by
+      apply add_lt_add
+      apply add_lt_add
+      rw [←dist_eq_norm]
+      exact hN₂ x hx_elem
+      rwa [dist_eq_norm] at hx_dist
+      rwa [dist_eq_norm] at hN₃
+    _ = ε := add_thirds ε
