@@ -4,6 +4,7 @@ import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.NormedSpace.FunctionSeries
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Data.Complex.Exponential
+import Mathlib.Topology.Algebra.InfiniteSum.UniformOn
 import Mathlib.Topology.Instances.ENNReal.Lemmas
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 
@@ -381,7 +382,6 @@ theorem TendstoUniformlyOn.interchange_limits {ι R₁ R₂ : Type*} [Nonempty �
     ∃ L : R₂, Tendsto b l (𝓝 L) ∧ Tendsto c atTop (𝓝 L) := by
   rw [tendstoUniformlyOn_iff] at hb
   rw [eventually_atTop] at hc
-
   obtain ⟨N₁, hN₁⟩ := hc  
   have hcauchy : CauchySeq c := by
     refine Metric.cauchySeq_iff'.mpr fun ε εpos ↦ ?_
@@ -433,4 +433,17 @@ theorem TendstoUniformlyOn.interchange_limits {ι R₁ R₂ : Type*} [Nonempty �
       rwa [dist_eq_norm] at hx_dist
       rwa [dist_eq_norm] at hN₃
     _ = ε := add_thirds ε
+
+theorem interchange_limit_prod_of_tendstoUniformlyOn {ι α R : Type*} [Nonempty ι] [SemilatticeSup ι]
+    [DecidableEq ι] [NormedCommRing R] [CompleteSpace R] {f : ι → α → R} {g : ι → R} {l : Filter α} 
+    [l.NeBot] {s : Set α}
+    (h : TendstoUniformlyOn (fun (is : Finset ι) ↦ fun (a : α) ↦  ∏ i ∈ is, f i a)
+    (fun a ↦ ∏' i, f i a) atTop s) (hlim : ∀ i : ι, Tendsto (f i ·) l (𝓝 (g i))) (hs : s ∈ l) :
+    Tendsto (fun a ↦ ∏' i, f i a) l (𝓝 (∏' i, g i)) := by
+  have hfin_prods_converge (is : Finset ι) :
+      Tendsto (fun a ↦ ∏ i ∈ is, f i a) l (𝓝 (∏ i ∈ is, g i)) :=
+    tendsto_finset_prod is (fun i _ ↦ hlim i)
+  obtain ⟨L, ⟨hL₁, hL₂⟩⟩ := TendstoUniformlyOn.interchange_limits h
+    (Eventually.of_forall hfin_prods_converge) hs
+  rwa [←HasProd.tprod_eq hL₂] at hL₁
 
