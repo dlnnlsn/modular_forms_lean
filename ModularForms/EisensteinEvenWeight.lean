@@ -578,29 +578,28 @@ lemma rw_of_cotangent {k : ℕ } (hk : 2 ≤ k)(z : ℍ) :
     norm_cast at fakenews
 
 theorem eisensteinSeries_eq_qExpansion {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
-(keven : k = 2 * m ) (mne0 : m ≠ 0):
-(fun z => (((-1 : ℝ) ^ (k / 2 + 1) * (2 : ℝ) ^ (k - 1) * π ^ k * (bernoulli k) / (Nat.factorial k)) *
- eisensteinSeries a k z) ) =  fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) + 2*
+(keven : k = 2 * m ) (mne0 : m ≠ 0) (z : ℍ ):
+(((-1 : ℝ) ^ (k / 2 + 1) * (2 : ℝ) ^ (k - 1) * π ^ k * (bernoulli k) / (Nat.factorial k)) *
+ eisensteinSeries a k z)  =   2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) + 2*
 (2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ,
 ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
-  ext τ
   rw [eisensteinSeries_expand hk a]
-  have {b : ℕ} : (b + 1 : ℂ) * (τ : ℂ) = ofComplex ((b + 1 : ℕ) * τ) := by sorry --proved below
+  have {b : ℕ} : (b + 1 : ℂ) * (z : ℂ) = ofComplex ((b + 1 : ℕ) * z) := by sorry --proved below
   simp_rw [this]
   have hk' : 2 ≤ k := by linarith
-  simp_rw [rw_of_cotangent (hk') (ofComplex ((_ : ℕ) * (τ : ℂ)))]
+  simp_rw [rw_of_cotangent (hk') (ofComplex ((_ : ℕ) * (z : ℂ)))]
   have : ∑' (y : ℕ), ∑' (d : ℕ),(d + 1) ^(k -1)
-  * cexp (2*π*i*(d + 1)*(y + 1)*τ)
-  = ∑' (d : ℕ) (m : {s : ℕ | (s + 1) ∣ d + 1}), (m + 1)^(k-1) * cexp (2*π*i*(d + 1)*τ) := sorry
-  have pos_im {y : ℕ}: im ((y + 1: ℕ ) * (τ : ℂ)) > 0 := by
+  * cexp (2*π*i*(d + 1)*(y + 1)*z)
+  = ∑' (d : ℕ) (m : {s : ℕ | (s + 1) ∣ d + 1}), (m + 1)^(k-1) * cexp (2*π*i*(d + 1)*z) := sorry
+  have pos_im {y : ℕ}: im ((y + 1: ℕ ) * (z : ℂ)) > 0 := by
     simp only [mul_im, natCast_re, coe_im, natCast_im, coe_re, zero_mul, add_zero, gt_iff_lt]
-    have h₁ : UpperHalfPlane.im τ > 0 := τ.2
+    have h₁ : UpperHalfPlane.im z > 0 := z.2
     have h₂ : (y + 1: ℝ) > 0 := by linarith
     subst keven
     simp_all only [ne_eq, gt_iff_lt, Nat.ofNat_pos, le_mul_iff_one_le_right, Set.coe_setOf, Set.mem_setOf_eq, add_re,
       natCast_re, one_re, add_im, natCast_im, one_im, add_zero, zero_mul, mul_pos_iff_of_pos_left]
     simp_all only [Nat.cast_add, Nat.cast_one, mul_pos_iff_of_pos_left]
-  have ofcomplexsimp (y : ℕ): ofComplex ((y + 1: ℕ)  * (τ : ℂ)) = (y + 1 : ℂ) * (τ : ℂ) := by
+  have ofcomplexsimp (y : ℕ): ofComplex ((y + 1: ℕ)  * (z : ℂ)) = (y + 1 : ℂ) * (z : ℂ) := by
     --refine Complex.ext ?_ ?_
     rw [ofComplex_apply_of_im_pos pos_im]
     subst keven
@@ -608,21 +607,67 @@ theorem eisensteinSeries_eq_qExpansion {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 →
     sorry
   simp_rw [ofcomplexsimp _]
   have : ∑' (y : ℕ), ∑' (d : ℕ),(d + 1) ^(k -1)
-  * cexp (2*π*i*(d + 1)*(y + 1)*τ)
-  = ∑' (d : ℕ) (m : {s : ℕ | (s + 1) ∣ d + 1}), (m + 1)^(k-1) * cexp (2*π*i*(d + 1)*τ) := sorry
+  * cexp (2*π*i*(d + 1)*(y + 1)*z)
+  = ∑' (d : ℕ) (m : {s : ℕ | (s + 1) ∣ d + 1}), (m + 1)^(k-1) * cexp (2*π*i*(d + 1)*z) := sorry
   rw [← this]
   simp only [zpow_neg, zpow_natCast, Int.reduceNeg, zpow_one, add_right_inj]
   rw [tsum_mul_left]
   norm_cast
   ring_nf
-  have {d : ℕ} {x : ℕ}: ↑(π * 2) * i * ↑(1 + d) * ↑(1 + x) * ↑τ = ↑(π * 2) * i * ↑τ * ↑(1 + d) * ↑(1 + x) := by ring_nf
+  have {d : ℕ} {x : ℕ} : ↑(π * 2) * i * ↑(1 + d) * ↑(1 + x) * ↑z = ↑(π * 2) * i * ↑z * ↑(1 + d) * ↑(1 + x) := by ring_nf
   simp_rw [this]
   apply keven ; apply mne0
+
+theorem eisensteinSeries_eq_qExpansion' {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m ) (mne0 : m ≠ 0):
+(fun z => (((-1 : ℝ) ^ (k / 2 + 1) * (2 : ℝ) ^ (k - 1) * π ^ k * (bernoulli k) / (Nat.factorial k)) *
+ eisensteinSeries a k z) ) =  fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) + 2*
+(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ,
+∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
+  ext τ
+  rw [eisensteinSeries_eq_qExpansion hk a keven mne0]
 
 noncomputable
 def OurEisensteinSeries (m : ℕ) (mne0 : m ≠ 0) (z : ℍ):=  2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
 (2*π*i)^ (2*m)* (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
-∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*z)
+∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*z)
+
+@[simp] --implicit instance better?
+lemma OurEisensteinSeriesDef (m : ℕ)(mne0 : m ≠ 0)(z : ℍ) : OurEisensteinSeries m mne0 z =
+ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
+(2*π*i)^ (2*m)* (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
+∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*z) := by rfl
+
+lemma OurEisensteinSeries_keven {k : ℕ} (m : ℕ) (keven : k = 2 * m)
+(mne0 : m ≠ 0)(z : ℍ ) : OurEisensteinSeries m mne0 z =
+2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) + 2*
+(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ,
+∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
+simp only [OurEisensteinSeriesDef]
+have : 2 * m / 2 = m := by simp
+subst keven
+simp_all only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, mul_div_cancel_left₀, zpow_neg, Int.reduceNeg, zpow_one,
+  Set.coe_setOf, Set.mem_setOf_eq, Nat.cast_mul, Nat.cast_ofNat, add_right_inj, mul_eq_mul_left_iff, mul_eq_zero,
+  or_self, pow_eq_zero_iff, ofReal_eq_zero, false_or, I_ne_zero, or_false, inv_eq_zero, Nat.cast_eq_zero]
+left ; congr  ; ext x ; congr ; ext S ;
+simp_all only [mul_eq_mul_right_iff, exp_ne_zero, or_false]
+obtain ⟨val, property⟩ := S
+simp_all only
+have : 2 * (m: ℤ) - 1 = ((((2 :ℕ) * m - (1 : ℕ)) : ℕ): ℤ ) := by
+  have :  2 * m - 1 > 0 := by
+    have : m > 0 :=  by apply Nat.ne_zero_iff_zero_lt.mp ; apply mne0
+    simp only [gt_iff_lt, tsub_pos_iff_lt]
+    rw [mul_comm]
+    apply one_lt_mul ;  linarith ; linarith
+  norm_cast
+  have : (2 : ℕ) * (m: ℤ) - (1 : ℕ) = ((((2 :ℕ) * m - (1 : ℕ)) : ℕ): ℤ ) := by
+    refine Eq.symm ((fun {a b} ↦ Int.sub_eq_zero.mp) ?_)
+    ring_nf
+    omega
+  simp_all only [gt_iff_lt, tsub_pos_iff_lt, Nat.cast_ofNat, Nat.cast_one]
+  exact this
+rw [this]
+simp only [zpow_natCast]
 
 noncomputable
 def OurBernoulli (m : ℕ) (mne0 : m ≠ 0) := (-1 : ℝ) ^ (m + 1) * (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) *
@@ -631,12 +676,31 @@ def OurBernoulli (m : ℕ) (mne0 : m ≠ 0) := (-1 : ℝ) ^ (m + 1) * (2 : ℝ) 
 @[simp]
 lemma ourBernoulli_ne_zero (m : ℕ) (mne0 : m ≠ 0) : OurBernoulli m mne0 ≠ 0 := by sorry
 
+@[simp]
+lemma OurBenoullidef (m : ℕ) (mne0 : m ≠ 0) : OurBernoulli m mne0 = (-1 : ℝ) ^ (m + 1) * (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) *
+(bernoulli (2 * m)) / (Nat.factorial (2 * m)) := by rfl
 
+lemma OurBernoulli_keven {k : ℕ} (m : ℕ) (keven : k = 2 * m) (mne0 : m ≠ 0):
+ OurBernoulli m mne0 = ((-1 : ℝ) ^ (k / 2 + 1) *
+ (2 : ℝ) ^ (k - 1) * π ^ k * (bernoulli k) / (Nat.factorial k)) := by
+  simp only [OurBenoullidef] ;
+  subst keven
+  have : 2 * m / 2 = m := by simp
+  ring_nf  ; simp_all only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, mul_div_cancel_left₀, mul_div_cancel_right₀]
+
+@[simp]
+lemma eisensteinSeries_ours {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m ) (mne0 : m ≠ 0) {z : ℍ} : (OurBernoulli m mne0) * eisensteinSeries a k z =
+(OurEisensteinSeries m mne0 z) := by
+  rw [OurBernoulli_keven m keven mne0 , OurEisensteinSeries_keven m keven mne0 z]
+  convert eisensteinSeries_eq_qExpansion hk a keven mne0 z
+  subst keven
+  simp_all only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, mul_div_cancel_left₀, ofReal_div, ofReal_mul,
+    ofReal_pow, ofReal_neg, ofReal_one, ofReal_ofNat, ofReal_ratCast, ofReal_natCast]
 
 theorem eisensteinSeries_normalised {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
-(keven : k = 2 * m ) (mne0 : m ≠ 0) : eisensteinSeries a k =
-fun z : ℍ => (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z) := by
-  ext τ
+(keven : k = 2 * m ) (mne0 : m ≠ 0) (τ : ℍ): eisensteinSeries a k τ=
+(OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 τ) := by
   have : OurBernoulli m mne0 ≠ 0 := ourBernoulli_ne_zero m mne0
   calc
     eisensteinSeries a k τ =  (OurBernoulli m mne0)⁻¹ *
@@ -645,35 +709,34 @@ fun z : ℍ => (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z) := by
       simp_all only [ne_eq, ourBernoulli_ne_zero, not_false_eq_true, PNat.val_ofNat, Nat.cast_mul, Nat.cast_ofNat,
         ofReal_inv, ofReal_eq_zero, inv_mul_cancel₀, one_mul]
     _ = (OurBernoulli m mne0)⁻¹  * ( OurBernoulli m mne0 * eisensteinSeries a k τ) := by ring_nf
-    _ = (OurBernoulli m mne0)⁻¹ *  2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
-  (2*π*i)^ (2*m)* (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
-  ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*τ) := by
-      nth_rw 2 [OurBernoulli]
-      have lemmab : ((fun z => (((-1 : ℝ) ^ (k / 2 + 1) * (2 : ℝ) ^ (k - 1) * π ^ k * (bernoulli k) / (Nat.factorial k)) *
- eisensteinSeries a k z) )) τ = ( (fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) + 2*
-(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ,
-∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) )) τ := by rw [eisensteinSeries_eq_qExpansion hk a keven mne0]
-      subst keven
-      simp only at lemmab
-      --have : ((-1 : ℝ) ^ (m + 1) * (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m ) * (bernoulli (2 * m)) / (Nat.factorial (2 * m))) = OurBernoulli
-      --rw [lemmab]
-      sorry
-  sorry
+    _ =  (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 τ) := by
+      rw[eisensteinSeries_ours]
+      apply hk ; apply keven
 
+theorem eisensteinSeries_normalised_fun {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m ) (mne0 : m ≠ 0) : eisensteinSeries a k =
+fun z : ℍ => (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z) := by
+  ext τ
+  apply eisensteinSeries_normalised hk a keven
 
+lemma eisenstein_sif_myqexpansion {k m : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m)(mne0 : m ≠ 0) {z : ℍ}:
+  eisensteinSeries_SIF a k z =  (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z):= by
+  rw [eisensteinSeries_SIF_apply, eisensteinSeries_normalised_fun hk a keven mne0]
 
-
-
-lemma eisenstein_sif_is {k : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))  :
-  eisensteinSeries_SIF a k = fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k : ℤ)) +
-(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by
+@[simp]
+lemma eisenstein_sif_is {k m : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m)(mne0 : m ≠ 0) :
+  eisensteinSeries_SIF a k = fun z:ℍ ↦ (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z) := by
   ext z
-  --rw [eisensteinSeries_SIF_apply, eisensteinSeries_eq_qExpansion hk]
-  sorry
+  rw [eisenstein_sif_myqexpansion hk a keven mne0]
 
-lemma eisensteinSeries_MF_is {k : ℕ}  (hk : 3 ≤ (k:ℤ)) (a : Fin 2 → ZMod (1:ℕ+)) :
-(eisensteinSeries_MF hk a) = fun z : ℍ ↦ 2 * ∑' x : ℕ, ((x +1 : ℂ)) ^(-(k : ℤ)) +
-(2*π*i)^k* (Nat.factorial (k-1))^(-(1:ℤ)) * ∑' d : ℕ, ∑' m : {s : ℕ | (s + 1) ∣ (d + 1)}, (m + 1)^(k-1) * Complex.exp (2*π*i*(d + 1)*z) := by sorry -- apply eisenstein_sif_is _ a ; norm_cast at hk
+lemma eisensteinSeries_MF_is {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m)(mne0 : m ≠ 0) {z : ℍ} :
+(eisensteinSeries_MF hk a z) =(OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z) := by
+  have : (eisensteinSeries_MF hk a) z = eisensteinSeries_SIF a k z  := by rfl
+  rw [this]
+  apply eisenstein_sif_myqexpansion (by linarith) a keven mne0
 
 
 
