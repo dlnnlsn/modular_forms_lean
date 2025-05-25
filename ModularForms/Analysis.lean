@@ -309,8 +309,8 @@ theorem TendstoUniformlyOn.of_prod_of_norm_bounded_of_complete {α R : Type*} [N
   have hf := Multipliable.of_norm_bounded_of_complete hu hfu
   exact TendstoUniformlyOn.of_prod_of_norm_bounded hu hfu hf
 
-theorem TendstoUniformlyOn.mul₀_of_bounded {α ι R : Type*} [TopologicalSpace α] [NormedRing R] 
-    {F G : ι → α → R} {f g : α → R} {l : Filter ι} {s : Set α} 
+theorem TendstoUniformlyOn.mul₀_of_bounded {α ι R : Type*} [NormedRing R] {F G : ι → α → R}
+    {f g : α → R} {l : Filter ι} {s : Set α} 
     (hf: TendstoUniformlyOn F f l s) (hg: TendstoUniformlyOn G g l s)
     (hf_bounded : ∃ C, ∀ x ∈ s, ‖f x‖ ≤ C) (hg_bounded : ∃ C, ∀ x ∈ s, ‖g x‖ ≤ C) :
     TendstoUniformlyOn (fun i x ↦ (F i x) * (G i x)) (f * g) l s := by
@@ -375,7 +375,7 @@ theorem TendstoUniformlyOn.of_const {α ι R : Type*} [UniformSpace R] (f : α �
 -- Based on a proof found on
 -- [Wikipedia](https://en.wikipedia.org/wiki/Iterated_limit#Moore-Osgood_theorem_for_interchanging_limits)
 theorem TendstoUniformlyOn.interchange_limits {ι R₁ R₂ : Type*} [Nonempty ι] [SemilatticeSup ι]
-    [NormedRing R₁] [NormedRing R₂] [CompleteSpace R₂] {a : ι → R₁ → R₂} {b : R₁ → R₂} {c : ι → R₂}
+    [NormedRing R₂] [CompleteSpace R₂] {a : ι → R₁ → R₂} {b : R₁ → R₂} {c : ι → R₂}
     {l : Filter R₁} [l.NeBot] {s : Set R₁} (hb : TendstoUniformlyOn a b atTop s)
     (hc : ∀ᶠ n in atTop, Tendsto (fun x ↦ a n x) l (𝓝 (c n))) (hs : s ∈ l):
     ∃ L : R₂, Tendsto b l (𝓝 L) ∧ Tendsto c atTop (𝓝 L) := by
@@ -433,3 +433,4 @@ theorem TendstoUniformlyOn.interchange_limits {ι R₁ R₂ : Type*} [Nonempty �
       rwa [dist_eq_norm] at hx_dist
       rwa [dist_eq_norm] at hN₃
     _ = ε := add_thirds ε
+
