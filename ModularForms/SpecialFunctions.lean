@@ -248,7 +248,7 @@ lemma cexp_series_HasSum (z : ℍ) : HasSum (fun n : ℕ => cexp (2 * π * i *z)
       neg_mul]
     rw [cexp_isreal]
     simp_all only [neg_mul, coe_im, exp_lt_one_iff, Left.neg_neg_iff, gt_iff_lt]
-    have τim : τ.im > 0 := τ.2 --apply UpperHalfPlane.im_pos
+    have τim : τ.im > 0 := τ.2
     have : 2 * π > 0 := by simp only [gt_iff_lt, Nat.ofNat_pos, mul_pos_iff_of_pos_left] ; apply Real.pi_pos
     simp_all only [gt_iff_lt, Nat.ofNat_pos, mul_pos_iff_of_pos_left]
   apply hasSum_geometric_of_norm_lt_one (cexp_norm z)
@@ -270,7 +270,8 @@ lemma cotagent_as_exp2 {z : ℍ} : - π * i - 2 * π * i * cexp (2 * π * i * z)
   rw [this]
   rw [cexp_eq_sum z]
 
-lemma cotangent_dirichlet_expansion''  (z : ℍ) : (π * cot (π * z) - 1 / (z : ℂ))  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
+lemma cotangent_dirichlet_expansion''  (z : ℍ) : (π * cot (π * z) - 1 / (z : ℂ))
+= - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
   calc
     (π * cot (π * z) - 1 / (z : ℂ)) = π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by apply cotagent_as_exp
     _  = - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by apply cotagent_as_exp1
