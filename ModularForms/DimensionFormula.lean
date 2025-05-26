@@ -45,10 +45,7 @@ lemma levelOne_rank_zero_of_odd_weight {k: ℤ} (h_odd: Odd k): Module.rank ℂ 
   rw [levelOne_eq_zero_of_odd_weight k h_odd f.toSlashInvariantForm]
   rfl
 
---theorem levelOne_rank_of_CuspFormSubspace_add_one {k : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
---Module.rank ℂ (ModularForm Γ(1) k) = Module.rank ℂ (Modular_Forms.CuspForm_Subspace Γ(1) k) + 1 := by
---  rw [← rank_ModulaForm_equiv_prod hk a, rank_prod',add_comm, rank_eisensteinSubspace_one]
---  rfl
+/- this coercion is briefly used below-/
 instance modformascuspform {k : ℤ}{f : ModularForm Γ(1) k} (vanishatcusp : (∀ (A : SL(2, ℤ)),
 IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A))) : CuspForm Γ(1) k where
   toFun := f.toSlashInvariantForm
@@ -56,12 +53,12 @@ IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A))) : CuspForm Γ(1) k where
   holo' := f.holo'
   zero_at_infty' := vanishatcusp
 
-lemma subspacelemma {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
+lemma eisensteinsubspace_gen_by_eis {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
 (x : Subspace ℂ  (ModularForm Γ(1) k)) :
 x ≤ (Submodule.span ℂ {eisensteinSeries_MF hk a}) ↔
 ∀ f ∈ x, ∃ c : ℂ, f = c • (eisensteinSeries_MF hk a) := sorry
 
-lemma subspacelemma2   {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
+lemma subspace_CuspForm_Subspace_iff_ZeroAtImInfty   {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
 (x : Subspace ℂ  (ModularForm Γ(1) k)) :
 x ≤ CuspForm_Subspace Γ(1) k ↔
 ∀ f ∈ x, ∀ (A : SL(2, ℤ)), IsZeroAtImInfty (f ∣[k] A) := by
@@ -100,8 +97,8 @@ IsCompl (Submodule.span ℂ {eisensteinSeries_MF (by linarith) a}) (CuspForm_Sub
   constructor
   · unfold Disjoint
     intro x h₁ h₂
-    rw [subspacelemma hk a] at h₁
-    rw [subspacelemma2 hk a] at h₂
+    rw [eisensteinsubspace_gen_by_eis hk a] at h₁
+    rw [subspace_CuspForm_Subspace_iff_ZeroAtImInfty hk a] at h₂
     intro f h₄
     simp
     have h₅ : ∃ c : ℂ, f = c • (eisensteinSeries_MF hk a) := by apply h₁ f; apply h₄
@@ -142,6 +139,7 @@ IsCompl (Submodule.span ℂ {eisensteinSeries_MF (by linarith) a}) (CuspForm_Sub
         }
         simp_all only [forall_const]
 
+/- a little silly as I have been told-/
 instance idℂ : ℂ ≃* ℂ where
   toFun := fun z ↦ z
   invFun := fun z ↦ z
@@ -174,13 +172,18 @@ lemma rank_eisensteinSubspace_one {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (
   · apply Eisenstein_series_not_zero
   · tauto
 
-theorem dimen {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
+theorem levelOne_rank_of_CuspFormSubspace_add_one {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
 Module.rank ℂ (ModularForm Γ(1) k) = Module.rank ℂ (CuspForm_Subspace Γ(1) k) + 1 := by
   rw [← rank_ModulaForm_equiv_prod hk a, rank_prod',add_comm, rank_eisensteinSubspace_one]
   rfl
 
+theorem levelone_rank_of_CuspForm_add_12 (k: ℤ) (hk: k ≥ -9) {a : Fin 2 → ZMod (1 : ℕ+)} (h_even: Even k) :
+Module.rank ℂ (CuspForm_Subspace Γ(1) (k + 12)) = Module.rank ℂ (ModularForm Γ(1) (k)) := by sorry
+
 lemma levelOne_rank_of_add_twelve (k: ℤ) (hk: k ≥ -9) (h_even: Even k):
   Module.rank ℂ (ModularForm Γ(1) (k + 12)) = Module.rank ℂ (ModularForm Γ(1) k) + 1 := by
+  rw [levelOne_rank_of_CuspFormSubspace_add_one (by linarith) , levelone_rank_of_CuspForm_add_12 k hk h_even]
+  sorry --these relate to the hypothesis (a : Fin 2 → ZMod (1 : ℕ+)) from above, I'll look into removing it if possible
   sorry
 
 lemma levelOne_rank_one_of_even_weight_of_lt_twelve (k: ℤ) (h_nonneg: k ≥ 3) (h_upper: k < 12) (h_even: Even k):
