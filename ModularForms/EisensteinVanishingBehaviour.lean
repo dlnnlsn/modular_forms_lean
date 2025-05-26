@@ -32,6 +32,7 @@ local notation "i" => Complex.I
   in the Cusp form subspace as defined in the CuspFormSubspace file
 -/
 
+
 @[simp]
 lemma qParam_has_bounded_norm {z : ℍ}: ‖𝕢 1 z‖ < 1 := by
   rw [norm_qParam]
@@ -542,7 +543,7 @@ theorem coeff_of_q_expansions_agree  {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin
     have h₁ : eisensteinFormalMultilinearSeries keven mne0 n =
  qExpansionFormalMultilinearSeries 1 (eisensteinSeries_MF hk a) n := by apply TheFPSeriesagree2 hk a keven
     unfold eisensteinFormalMultilinearSeries qExpansionFormalMultilinearSeries  at h₁
-    rw [mkPiAlgebra_eq_iff] at h₁
+    rw [mkPiAlgebra_eq_iff] at h₁ --actually false I think
     rw [h₁]
 
 
@@ -592,5 +593,58 @@ lemma eisensteinSeries_nin_CuspForm_Subspace {q : ℂ} {k m : ℕ} (hk : 3 ≤ (
     have h₃ : ¬ ∀ (A : SL(2, ℤ)), IsZeroAtImInfty ((eisensteinSeries_MF hk a) ∣[(k : ℤ)] A)
      := by apply eisensteinSeries_not_zero_at_infty1 hk a keven mne0 ; apply q
     contradiction
+
+
+lemma Eisenstein_series_ne_zero  {k m: ℕ} (hk : 3 ≤ (k: ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))
+(keven : k = 2 * m)(mne0 : m ≠ 0) :
+ qExpansion 1 (eisensteinSeries_MF hk a) ≠ 0 := by
+  intro h
+  rw [← PowerSeries.forall_coeff_eq_zero] at h
+  have h₁ : (coeff ℂ 0) (qExpansion 1 (eisensteinSeries_MF hk a)) = 2 := by
+    rw [← coeffzeroagree hk a keven mne0] ; simp only [eisensteincoeff'_at_zero]
+  rw [h 0] at h₁
+  have : 0 = (2:ℂ) → False := by simp
+  apply this ; apply h₁
+
+lemma Eisenstein_series_coeff_zero_eq_two {k m: ℕ} (hk : 3 ≤ (k: ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))
+(keven : k = 2 * m)(mne0 : m ≠ 0) : (coeff ℂ 0) (qExpansion 1 (eisensteinSeries_MF hk a)) = 2  := by
+rw [← coeffzeroagree hk a keven mne0] ; simp only [eisensteincoeff'_at_zero]
+
+lemma Eisenstein_series_coeff_zero_ne_zero  {k m: ℕ} (hk : 3 ≤ (k: ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))
+(keven : k = 2 * m)(mne0 : m ≠ 0) : (coeff ℂ 0) (qExpansion 1 (eisensteinSeries_MF hk a)) ≠ 0 := by
+intro h
+rw [Eisenstein_series_coeff_zero_eq_two hk a keven mne0] at h
+have : 2 = 0 → False := by tauto
+apply this ; convert h ; norm_cast
+
+lemma Eisenstein_series_not_zero {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))
+(keven : k = 2 * m)(mne0 : m ≠ 0) :
+  eisensteinSeries_MF hk a ≠ 0 := by
+  intro h
+  have h₁ : (coeff ℂ 0) (qExpansion 1 (eisensteinSeries_MF hk a)) = 0 := by
+    rw [h]
+    simp_all only [PNat.val_ofNat, coeff_zero_eq_constantCoeff]
+    unfold qExpansion
+    simp only [constantCoeff_mk, Nat.factorial_zero, Nat.cast_one, inv_one, iteratedDeriv_zero,
+      one_mul]
+    unfold SlashInvariantFormClass.cuspFunction
+    rw [cuspFunction_zero_eq_limUnder_nhds_ne (1 : ℕ)]
+    simp_all only [Nat.cast_one, coe_zero, Pi.zero_comp]
+    rw [Filter.limUnder_eq_iff]
+    · unfold Periodic.cuspFunction
+      simp only [Pi.zero_comp]
+      refine continuousAt_update_same.mp ?_
+      simp only [update_idem, update_zero]
+      refine Continuous.continuousAt ?_
+      exact continuous_zero
+    · use 0
+      unfold Periodic.cuspFunction
+      simp only [Pi.zero_comp]
+      refine continuousAt_update_same.mp ?_
+      simp only [update_idem, update_zero]
+      refine Continuous.continuousAt ?_
+      exact continuous_zero
+  apply Eisenstein_series_coeff_zero_ne_zero hk a keven mne0 --Eisenstein_series_ne_zero hk a keven mne0
+  rw [h₁]
 
 #min_imports
