@@ -5,6 +5,7 @@ import Mathlib.LinearAlgebra.Matrix.FixedDetMatrices
 import Mathlib.NumberTheory.ModularForms.EisensteinSeries.Defs
 import Mathlib.NumberTheory.ModularForms.LevelOne
 import Mathlib.NumberTheory.ModularForms.SlashActions
+import Mathlib.Topology.Defs.Filter
 import ModularForms.EtaFunction
 
 open Real UpperHalfPlane Matrix MatrixGroups CongruenceSubgroup ModularForm SlashAction 
@@ -21,7 +22,9 @@ theorem delta_product_formula (z : ℍ) : delta z =
   ring_nf
 
 theorem delta_theta_q_atImInfty : delta =Θ[atImInfty] (fun τ : ℍ ↦ rexp (-2 * π * τ.im)) := by
-  sorry
+  convert eta_theta_atImInfty.pow 24
+  rw [←Real.exp_nat_mul]
+  ring_nf
 
 theorem delta_nonzero_on_upperHalfPlane (z : ℍ) : delta z ≠ 0 := by sorry
 
