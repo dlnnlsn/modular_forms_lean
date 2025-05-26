@@ -26,7 +26,8 @@ theorem delta_theta_q_atImInfty : delta =Θ[atImInfty] (fun τ : ℍ ↦ rexp (-
   rw [←Real.exp_nat_mul]
   ring_nf
 
-theorem delta_nonzero_on_upperHalfPlane (z : ℍ) : delta z ≠ 0 := by sorry
+theorem delta_nonzero_on_upperHalfPlane (z : ℍ) : delta z ≠ 0 :=
+  pow_ne_zero 24 (eta_nonzero_on_upperHalfPlane z)
 
 lemma delta_slash_T: delta ∣[(12: ℤ)] ModularGroup.T = delta := by
   ext z

@@ -186,3 +186,36 @@ theorem eta_theta_atImInfty : eta =Θ[atImInfty] (fun τ ↦ rexp (-π * τ.im /
     ((atImInfty_mem s).mpr ⟨1, fun _ h ↦ h⟩)
   exact Eq.symm tprod_one
 
+theorem eta_nonzero_on_upperHalfPlane (z : ℍ) : eta z ≠ 0 := fun heq ↦ by
+  rw [eta, mul_eq_zero] at heq
+  rcases heq with heq | heq
+  exact Complex.exp_ne_zero _ heq
+  have hsummable : Summable (fun n : ℕ ↦ ‖(1 - cexp (2 * π * Complex.I * ↑(n + 1) * z)) - 1‖) := by
+    simp_rw [show ∀ n : ℕ, ‖(1 - cexp (2 * π * Complex.I * ↑(n + 1) * z)) - 1‖ 
+        = (rexp (-2 * π * z.im))^(n + 1) by
+      intro n
+      simp only [Nat.cast_add, Nat.cast_one, sub_sub_cancel_left, norm_neg, norm_exp, mul_re,
+        re_ofNat, ofReal_re, im_ofNat, ofReal_im, mul_zero, sub_zero, Complex.I_re, mul_im,
+        zero_mul, add_zero, Complex.I_im, mul_one, sub_self, add_re, natCast_re, one_re, add_im,
+        natCast_im, one_im, coe_re, zero_add, coe_im, zero_sub, neg_mul, ← Real.exp_nat_mul,
+        mul_neg, exp_eq_exp, neg_inj]
+      ring 
+    ]
+    refine (summable_nat_add_iff 1).mpr <| summable_geometric_of_lt_one (exp_nonneg _) ?_
+    refine exp_lt_one_iff.mpr <| mul_neg_of_neg_of_pos ?_ z.property
+    exact mul_neg_of_neg_of_pos (by norm_num) pi_pos
+  refine product_nonzero_of_terms_nonzero_of_summable_norm (α := ℂ)
+    (multipliableLocallyUniformlyOn_eta_product.multipliable z.property) hsummable ?_ heq
+  intro n heq
+  apply Lean.Grind.CommRing.sub_eq_zero_iff.mp at heq
+  obtain ⟨k, hk⟩ := Complex.exp_eq_one_iff.mp (Eq.symm heq)
+  rw [mul_comm (k : ℂ) _, mul_assoc] at hk
+  apply (mul_right_inj' (by norm_num [pi_ne_zero])).mp at hk
+  apply_fun Complex.im at hk
+  simp only [Nat.cast_add, Nat.cast_one, mul_im, add_re, natCast_re, one_re, add_im, natCast_im,
+    one_im, add_zero, zero_mul, intCast_im, mul_eq_zero] at hk
+  rcases hk with hk | hk
+  exact Nat.cast_add_one_ne_zero n hk
+  exact ne_of_gt z.property hk
+
+

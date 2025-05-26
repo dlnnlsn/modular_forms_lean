@@ -1,4 +1,5 @@
 import Mathlib.Analysis.Asymptotics.Defs
+import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.RCLike.Basic
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.NormedSpace.FunctionSeries
@@ -193,6 +194,8 @@ theorem Finset.norm_prod_le_exp_sum_norm_sub_one {α ι : Type*} [NormedCommRing
   simp
   all_goals assumption
 
+-- Based on proof from
+-- [course notes for Analytic Number Theory](https://pub.math.leidenuniv.nl/~evertsejh/ant20-0.pdf)
 theorem uniformCauchySeqOn_prod {α ι R : Type*} [NormedCommRing R] [Nontrivial R] [NormMulClass R]
     [NormOneClass R] [DecidableEq ι] {f : ι → α → R} {u : ι → ℝ} {s : Set α} (hu : Summable u)
     (hfu : ∀ i, ∀ x ∈ s, ‖f i x - 1‖ ≤ u i) :
@@ -446,4 +449,92 @@ theorem interchange_limit_prod_of_tendstoUniformlyOn {ι α R : Type*} [Nonempty
   obtain ⟨L, ⟨hL₁, hL₂⟩⟩ := TendstoUniformlyOn.interchange_limits h
     (Eventually.of_forall hfin_prods_converge) hs
   rwa [←HasProd.tprod_eq hL₂] at hL₁
+
+lemma aux_norm_prod {α : Type*} [NormedRing α] [Nontrivial α] [NormMulClass α] {x : ℝ} (hx₀ : 0 ≤ x)
+    (hx₁ : x ≤ 1) (y : α) : 1 - (‖y - 1‖ + x) ≤ ‖y‖ * (1 - x) := by
+  calc
+    ‖y‖ * (1 - x) ≥ (1 - ‖y - 1‖) * (1 - x) := by
+      refine mul_le_mul_of_nonneg_right ?_ (sub_nonneg_of_le hx₁)
+      rw [norm_sub_rev, ←IsAbsoluteValue.abv_one' (norm : α → ℝ)]
+      convert norm_sub_norm_le _ _
+      rw [sub_sub_cancel]
+    _ = 1 - (‖y - 1‖ + x) + ‖y - 1‖ * x := by ring
+    _ ≥ 1 - (‖y - 1‖ + x) :=
+      le_add_of_le_of_nonneg (le_of_eq <| Eq.refl _) (mul_nonneg (norm_nonneg _) hx₀)
+
+lemma List.one_sub_sum_norm_le_prod_norm {α : Type*} [NormedRing α] [Nontrivial α]
+    [NormMulClass α] {l : List α} (h : (l.map (‖· - 1‖)).sum ≤ 1) :
+    1 - (l.map (‖· - 1‖)).sum ≤ ‖l.prod‖ := by
+  induction' l with head tail htail
+  simp [IsAbsoluteValue.abv_one' (norm : α → ℝ)]
+  rw [prod_cons, norm_mul, map_cons, sum_cons]
+  have hsum_norm_tail_nonneg : 0 ≤ (tail.map (‖· - 1‖)).sum := by
+    apply List.sum_nonneg
+    intro x hx
+    obtain ⟨_, ⟨_, hx_eq_norm⟩⟩ := List.mem_map.mp hx
+    rw [←hx_eq_norm]
+    exact norm_nonneg _
+  have hsum_norm_tail_le_one : (tail.map (‖· - 1‖)).sum ≤ 1 := by
+    apply le_trans _ h
+    rw [map_cons, sum_cons]
+    exact (le_add_iff_nonneg_left _).mpr (norm_nonneg _)
+  refine le_trans (aux_norm_prod hsum_norm_tail_nonneg hsum_norm_tail_le_one head) ?_
+  exact mul_le_mul_of_nonneg_left (htail hsum_norm_tail_le_one) (norm_nonneg _)
+
+lemma Finset.one_sub_sum_norm_le_prod_norm {α ι: Type*} [NormedCommRing α] [Nontrivial α]
+    [NormMulClass α] {s : Finset ι} {f : ι → α} (h : ∑ i ∈ s, ‖f i - 1‖ ≤ 1) :
+    1 - ∑ i ∈ s, ‖f i - 1‖ ≤ ‖∏ i ∈ s, f i‖ := by
+    rw [←Finset.prod_map_toList, ←Finset.sum_map_toList]
+    rw [show (fun i : ι ↦ ‖f i - 1‖) = (fun a : α ↦ ‖a - 1‖) ∘ (fun i : ι ↦ f i) by rfl]
+    rw [←List.map_map]
+    apply List.one_sub_sum_norm_le_prod_norm
+    simp [h]
+
+-- Based on proof from
+-- [course notes for Analytic Number Theory](https://pub.math.leidenuniv.nl/~evertsejh/ant20-0.pdf)
+theorem product_nonzero_of_terms_nonzero_of_summable_norm {α ι R : Type*} [NormedCommRing R]
+    [Nontrivial R] [NormMulClass R] [NormOneClass R] [DecidableEq ι] {f : ι → R}
+    (hmultipliable : Multipliable f) (hsummable : Summable (fun i : ι ↦ ‖f i - 1‖))
+    (hnon_zero : ∀ i, f i ≠ 0) : ∏' i : ι, f i ≠ 0 := by
+  have htail_tendsto_zero := tendsto_tsum_compl_atTop_zero (fun i : ι ↦ ‖f i - 1‖)
+  apply (atTop_basis.tendsto_iff (nhds_basis_Ioo_pos 0)).mp at htail_tendsto_zero
+  obtain ⟨M, ⟨_, hM⟩⟩ := htail_tendsto_zero ((1 : ℝ) / 2) one_half_pos 
+  replace hM := hM M (Set.mem_Ici.mpr (le_refl M))
+  rw [Set.mem_Ioo] at hM
+  replace hM := hM.right
+  norm_num at hM
+  have hpartial_sum_upper_bound (s : Finset ι) : ∑ i ∈ (s \ M), ‖f i - 1‖ ≤ (1 : ℝ) / 2 := by
+    rw [←Finset.tsum_subtype]
+    let emb (x : { x // x ∈ s \ M }) : { x // x ∉ M } := {
+      val := x.val
+      property := (Finset.mem_sdiff.mp x.property).right
+    }
+    have emb_injective : Function.Injective emb := fun _ _ heq ↦ by
+      apply_fun Subtype.val at heq
+      exact Subtype.mk_eq_mk.mpr heq
+    refine le_trans ?_ (le_of_lt hM)
+    apply Summable.tsum_le_tsum_of_inj emb emb_injective
+    exact fun _ _ ↦ norm_nonneg _
+    exact fun _ ↦ by rfl
+    apply Summable.subtype hsummable  
+    apply Summable.subtype hsummable  
+  have hpartial_products_lower_bound (s : Finset ι) :
+      1 - ∑ i ∈ (s \ M), ‖f i - 1‖ ≤ ‖∏ i ∈ (s \ M), f i‖ := by
+    apply Finset.one_sub_sum_norm_le_prod_norm
+    refine le_trans (hpartial_sum_upper_bound s) (by norm_num)
+  replace hpartial_products_lower_bound (s : Finset ι) :
+      (1 : ℝ) / 2 ≤ ‖∏ i ∈ (s \ M), f i‖ := by
+    refine le_trans ?_ (hpartial_products_lower_bound s)
+    linarith [hpartial_sum_upper_bound s]
+  suffices ‖∏ i ∈ M, f i‖ * ((1 : ℝ) / 2) ≤ ‖∏' i : ι, f i‖ by
+    have : ‖∏ i ∈ M, f i‖ > 0 := by
+      rw [norm_prod]
+      exact Finset.prod_pos fun i _ ↦ norm_pos_iff.mpr (hnon_zero i)
+    apply norm_pos_iff.mp
+    linarith
+  refine ge_of_tendsto (Tendsto.norm (Multipliable.hasProd hmultipliable)) ?_
+  filter_upwards [eventually_ge_atTop M] with s hsubset
+  have hdisjoint : Disjoint M (s \ M) := Finset.disjoint_sdiff
+  rw [←Finset.union_sdiff_of_subset hsubset, Finset.prod_union hdisjoint, norm_mul]
+  exact mul_le_mul_of_nonneg_left (hpartial_products_lower_bound s) (norm_nonneg _)
 
