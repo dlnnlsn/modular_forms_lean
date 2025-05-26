@@ -1,4 +1,5 @@
 import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Data.Int.Interval
 import Mathlib.Order.Filter.AtTopBot.Defs
@@ -42,6 +43,10 @@ lemma prod_within_radius_of_top (r: ℕ) (f: ℤ → α):
 @[to_additive]
 lemma prod_within_radius_of_prod (r: ℕ) (S: Set ℤ) (f g: ℤ → α):
     prod_within_radius r S (f * g) = prod_within_radius r S f * prod_within_radius r S g := Finset.prod_mul_distrib
+
+@[to_additive]
+lemma prod_within_radius_of_inv {α: Type*} [DivisionCommMonoid α] [TopologicalSpace α] (r: ℕ) (S: Set ℤ) (f: ℤ → α):
+    prod_within_radius r S (f⁻¹) = (prod_within_radius r S f)⁻¹ := Finset.prod_inv_distrib
 
 @[to_additive]
 lemma prod_of_set_eq {β: Type*} {A B: Finset β} {f: β → α} (h: A = B): ∏ i ∈ A, f i = ∏ i ∈ B, f i := by congr
@@ -112,6 +117,32 @@ theorem HasProdOnZ.unique [T2Space α] {S: Set ℤ} {f: ℤ → α} {a₁ a₂: 
     HasProdOnZ S f a₁ → HasProdOnZ S f a₂ → a₁ = a₂ := by
   classical exact tendsto_nhds_unique
 
+open Classical in
+@[to_additive]
+theorem HasProdOnZ.congr {S₁ S₂: Set ℤ} {f₁ f₂: ℤ → α} {a: α} (hS: S₁ = S₂) (hf: ∀ k ∈ S₂, f₁ k = f₂ k) (h: HasProdOnZ S₁ f₁ a): HasProdOnZ S₂ f₂ a := by
+  unfold HasProdOnZ
+  have h_prod (r: ℕ): prod_within_radius r S₁ f₁ = prod_within_radius r S₂ f₂ := by
+    apply Finset.prod_congr
+    apply Finset.filter_congr
+    intro x _
+    rw [hS]
+    intro x hx
+    rw [Finset.mem_filter] at hx
+    exact hf x hx.right
+  simp_rw [←h_prod]
+  exact h
+
+@[to_additive]
+theorem MultipliableOnZ.congr {S₁ S₂: Set ℤ} {f₁ f₂: ℤ → α} (hS: S₁ = S₂) (hf: ∀ k ∈ S₂, f₁ k = f₂ k): MultipliableOnZ S₁ f₁ ↔ MultipliableOnZ S₂ f₂ := by
+  constructor
+  exact λ ⟨a, ha⟩ ↦ ⟨a, HasProdOnZ.congr hS hf ha⟩
+  replace hf: ∀ k ∈ S₁, f₂ k = f₁ k := by
+    intro k hk
+    rw [hS] at hk
+    exact Eq.symm <| hf k hk
+  symm at hS
+  exact λ ⟨a, ha⟩ ↦ ⟨a, HasProdOnZ.congr hS hf ha⟩
+
 @[to_additive]
 theorem MultipliableOnZ.of_z_prod_ne_one {S: Set ℤ} {f: ℤ → α} (h: z_prod S f ≠ 1):
     MultipliableOnZ S f := by
@@ -126,6 +157,13 @@ theorem MultipliableOnZ.hasProdOnZ {S: Set ℤ} {f: ℤ → α} (h: Multipliable
 @[to_additive]
 theorem HasProdOnZ.z_prod_eq [T2Space α] {S: Set ℤ} {f: ℤ → α} {a: α} (h: HasProdOnZ S f a): z_prod S f = a :=
   (MultipliableOnZ.hasProdOnZ ⟨a, h⟩).unique h
+
+@[to_additive]
+theorem MultipliableOnZ.z_prod_congr [T2Space α] {S₁ S₂: Set ℤ} {f₁ f₂: ℤ → α} (hS: S₁ = S₂) (hf: ∀ k ∈ S₂, f₁ k = f₂ k) (h: MultipliableOnZ S₁ f₁):
+    z_prod S₁ f₁ = z_prod S₂ f₂ := by
+  obtain ⟨a, ha⟩ := h
+  have hb := HasProdOnZ.congr hS hf ha
+  rw [HasProdOnZ.z_prod_eq ha, HasProdOnZ.z_prod_eq hb]
 
 @[to_additive]
 theorem HasProdOnZ.of_z_prod_ne_one {S: Set ℤ} {f: ℤ → α} (h: z_prod S f ≠ 1):
@@ -168,6 +206,18 @@ theorem HasProdOnZ.prod [ContinuousMul α] {f g : ℤ → α} {a b: α} {S: Set 
   exact Filter.Tendsto.mul hf hg
 
 @[to_additive]
+theorem HasProdOnZ.inv {α: Type*} [DivisionCommMonoid α] [TopologicalSpace α] [ContinuousInv α] {f: ℤ → α} {a: α} {S: Set ℤ} (hf: HasProdOnZ S f a): HasProdOnZ S (f⁻¹) (a⁻¹) := by
+  unfold HasProdOnZ
+  simp_rw [prod_within_radius_of_inv]
+  exact Filter.Tendsto.inv hf
+
+@[to_additive]
+theorem HasProdOnZ.div {α: Type*} [CommGroup α] [TopologicalSpace α] [ContinuousMul α] [ContinuousInv α]  {f g: ℤ → α} {a b: α} {S: Set ℤ} (hf: HasProdOnZ S f a) (hg: HasProdOnZ S g b):
+    HasProdOnZ S (f/g) (a/b) := by
+  repeat rw [div_eq_mul_inv]
+  exact HasProdOnZ.prod hf (HasProdOnZ.inv hg)
+
+@[to_additive]
 theorem HasProdOnZ.exchange_prod_finprod {β: Type*} [DecidableEq β] [ContinuousMul α] {S: Set ℤ} {T: Finset β} {f: β → ℤ → α} {g: β → α}
     (h: ∀ b ∈ T, HasProdOnZ S (f b ·) (g b)):
     HasProdOnZ S (∏ b ∈ T, f b ·) (∏ b ∈ T, g b) := by
@@ -190,10 +240,45 @@ theorem exchange_z_prod_finprod {β: Type*} [T2Space α] [DecidableEq β] [Conti
   apply HasProdOnZ.z_prod_eq
   exact HasProdOnZ.exchange_prod_finprod h
 
+@[to_additive]
+theorem MultipliableOnZ.z_prod_prod [T2Space α] [ContinuousMul α] {S: Set ℤ} {f g: ℤ → α} (hf: MultipliableOnZ S f) (hg: MultipliableOnZ S g):
+    z_prod S (f * g) = z_prod S f * z_prod S g := by
+  obtain ⟨a, ha⟩ := hf
+  obtain ⟨b, hb⟩ := hg
+  have h_fg_prod: HasProdOnZ S (f * g) (a * b) := HasProdOnZ.prod ha hb
+  rw [HasProdOnZ.z_prod_eq ha, HasProdOnZ.z_prod_eq hb, HasProdOnZ.z_prod_eq h_fg_prod]
+
+@[to_additive]
+theorem MultipliableOnZ.z_prod_div {α: Type*} [CommGroup α] [TopologicalSpace α] [T2Space α] [ContinuousMul α] [ContinuousInv α]  {f g: ℤ → α} {S: Set ℤ} (hf: MultipliableOnZ S f) (hg: MultipliableOnZ S g):
+    z_prod S (f/g) = z_prod S f / z_prod S g := by
+  obtain ⟨a, ha⟩ := hf
+  obtain ⟨b, hb⟩ := hg
+  have h_fg_prod: HasProdOnZ S (f / g) (a / b) := HasProdOnZ.div ha hb
+  rw [HasProdOnZ.z_prod_eq ha, HasProdOnZ.z_prod_eq hb, HasProdOnZ.z_prod_eq h_fg_prod]
+
+open Classical in
+@[to_additive]
+theorem z_prod_congr [T2Space α] {S₁ S₂: Set ℤ} {f₁ f₂: ℤ → α} (hS: S₁ = S₂) (hf: ∀ k ∈ S₂, f₁ k = f₂ k): z_prod S₁ f₁ = z_prod S₂ f₂ :=
+  if h: MultipliableOnZ S₁ f₁ then MultipliableOnZ.z_prod_congr hS hf h else by
+  have h_f₂_not_multipliable: ¬MultipliableOnZ S₂ f₂ := (MultipliableOnZ.congr hS hf).not.mp h
+  simp only [z_prod, h, ↓reduceDIte, h_f₂_not_multipliable]
+
 notation3 "∏_ℤ "(...)", "r:67:(scoped f => z_prod ⊤ f) => r
 notation3 "∏_ℤ' "(...)", "r:67:(scoped f => z_prod ((⊤: Set ℤ) \ {0}) f) => r
 notation3 "∑_ℤ "(...)", "r:67:(scoped f => z_sum ⊤ f) => r
 notation3 "∑_ℤ' "(...)", "r:67:(scoped f => z_sum ((⊤: Set ℤ) \ {0}) f) => r
+
+def ℤ_neg := { x: ℤ | x < 0 }
+def ℤ_nonneg := { x: ℤ | x ≥ 0 }
+
+open Classical in
+@[to_additive]
+theorem HasProdOnZ.of_nat_of_neg {S: Set ℤ} {a b: α} {f: ℤ → α}
+    (h_nat: Tendsto (λ N ↦ ∏ k ∈ (Finset.range N).filter (λ k: ℕ ↦ (k: ℤ) ∈ S), f k) atTop (𝓝 a))
+    (h_neg: Tendsto (λ N ↦ ∏ k ∈ (Finset.range N).filter (λ k: ℕ ↦ (-(k + 1): ℤ) ∈ S), f (-(k + 1))) atTop (𝓝 b)):
+    HasProdOnZ S f (a * b) := by
+  sorry
+
 
 open Classical in
 @[to_additive]
@@ -242,3 +327,126 @@ theorem z_prod_eq_tprod_of_multipliable [T2Space α] {S: Set ℤ} {f: ℤ → α
   have h_hasProdOnZ_prod: HasProdOnZ S f (∏' k, f' k) := by exact HasProdOnZ.of_prod h_hasProd
   apply HasProdOnZ.z_prod_eq h_hasProdOnZ_prod
 
+@[to_additive]
+theorem z_prod'_eq_tprod_of_multipliable_of_pos_of_neg [T2Space α] {f: ℤ → α} (h: Multipliable (λ k ↦ if k = 0 then 1 else f k)):
+    ∏_ℤ' k, f k = ∏' k: ℕ, (f (k + 1) * f (-(k + 1): ℤ)) := by
+  sorry
+
+theorem HasSumOnZ.const_mul {α: Type*} [CommRing α] [TopologicalSpace α] [ContinuousMul α] {S: Set ℤ} {a: α} {f: ℤ → α} (h: HasSumOnZ S f a) (c: α): HasSumOnZ S (λ k ↦ c * f k) (c * a) := by
+  unfold HasSumOnZ
+  unfold sum_within_radius
+  simp_rw [←Finset.mul_sum]
+  exact Tendsto.mul tendsto_const_nhds h
+
+theorem SummableOnZ.const_mul {α: Type*} [CommRing α] [TopologicalSpace α] [ContinuousMul α] {S: Set ℤ} {f: ℤ → α} (c: α):
+    SummableOnZ S f → SummableOnZ S (λ k ↦ c * f k) :=
+  λ ⟨a, ha⟩ ↦ ⟨c * a, HasSumOnZ.const_mul ha c⟩
+
+theorem SummableOnZ.const_mul_iff {α: Type*} [Field α] [TopologicalSpace α] [ContinuousMul α] {S: Set ℤ} {f: ℤ → α} {c: α} (hc: c ≠ 0):
+    SummableOnZ S f ↔ SummableOnZ S (λ k ↦ c * f k) := by
+  constructor
+  exact SummableOnZ.const_mul c
+  intro h_summable
+  rw [show f = λ k ↦ c⁻¹ * (c * f k) by
+    funext k
+    rw [←mul_assoc, inv_mul_cancel₀ hc, one_mul]
+  ]
+  exact SummableOnZ.const_mul (c⁻¹) h_summable
+
+theorem SummableOnZ.z_sum_const_mul {α: Type*} [CommRing α] [TopologicalSpace α] [T2Space α] [ContinuousMul α] {S: Set ℤ} {f: ℤ → α} {c: α} (h: SummableOnZ S f):
+    z_sum S (λ k ↦ c * f k) = c * z_sum S f := by
+  obtain ⟨a, ha⟩ := h
+  rw [ha.z_sum_eq, (ha.const_mul c).z_sum_eq]
+
+open Classical in
+theorem z_sum_const_mul {α: Type*} [Field α] [TopologicalSpace α] [T2Space α] [ContinuousMul α] {S: Set ℤ} {f: ℤ → α} {c: α}:
+    z_sum S (λ k ↦ c * f k) = c * z_sum S f :=
+  if h_zero: c = 0 then by
+    simp_rw [h_zero, zero_mul]
+    exact (HasSumOnZ.sum_const_zero S).z_sum_eq
+  else if h_summable: SummableOnZ S f then
+    SummableOnZ.z_sum_const_mul h_summable
+  else by
+    have h_cf_not_summable := (SummableOnZ.const_mul_iff h_zero).not.mp h_summable
+    simp [z_sum_def, h_summable, h_cf_not_summable]
+
+@[to_additive]
+theorem HasProdOnZ.of_singleton (f: ℤ → α) (b: ℤ): HasProdOnZ {b} f (f b) := by
+  apply tendsto_nhds_of_eventually_eq
+  rw [eventually_atTop]
+  use b.natAbs + 1
+  intro n hn
+  have h_set: (Finset.Ico (-n: ℤ) n).filter (· ∈ ({b}: Set ℤ)) = { b } := by
+    ext x
+    constructor
+    simp only [Set.mem_singleton_iff, Finset.mem_filter, Finset.mem_Ico, Finset.mem_singleton,
+      and_imp, imp_self, implies_true]
+    simp only [Finset.mem_singleton, Set.mem_singleton_iff, Finset.mem_filter, Finset.mem_Ico]
+    omega
+  unfold prod_within_radius
+  rw [←Finset.prod_singleton f b]
+  congr
+  convert h_set
+
+@[to_additive]
+theorem MultipliableOnZ.of_singleton (f: ℤ → α) (b: ℤ): MultipliableOnZ ({b}: Set ℤ) f := (HasProdOnZ.of_singleton f b).multipliableOnZ
+
+open Classical in
+@[to_additive]
+lemma prod_within_radius_of_sdiff {α: Type*} [CommGroup α] {S T: Set ℤ} (r: ℕ) (f: ℤ → α) (h_subset: T ⊆ S):
+    prod_within_radius r (S \ T) f * prod_within_radius r T f = prod_within_radius r S f := by
+  unfold prod_within_radius
+  let S' := (Finset.Ico (-r: ℤ) r).filter (· ∈ S)
+  let T' := (Finset.Ico (-r: ℤ) r).filter (· ∈ T)
+  replace h_subset: T' ⊆ S' := by
+    unfold S' T'
+    intro x hT
+    rw [Finset.mem_filter] at hT ⊢
+    exact ⟨hT.left, h_subset hT.right⟩
+  have h_sdiff: S' \ T' = (Finset.Ico (-r: ℤ) r).filter (· ∈ S \ T) := by
+    aesop
+  refold_let S'  T'
+  have h_sdiff_prod := Finset.prod_sdiff (f := f) h_subset 
+  rw [h_sdiff] at h_sdiff_prod
+  convert h_sdiff_prod
+
+@[to_additive]
+theorem HasProdOnZ.of_sdiff {α: Type*} [CommGroup α] [TopologicalSpace α] [ContinuousDiv α] {S T: Set ℤ} {s t: α} {f: ℤ → α}
+    (h_subset: T ⊆ S) (hS: HasProdOnZ S f s) (hT: HasProdOnZ T f t):
+    HasProdOnZ (S \ T) f (s / t) := by
+  unfold HasProdOnZ
+  have h_prod_radius (r: ℕ) := eq_div_iff_mul_eq'.mpr <| prod_within_radius_of_sdiff r f h_subset
+  simp_rw [h_prod_radius]
+  apply Tendsto.div' hS hT
+
+@[to_additive]
+theorem MultipliableOnZ.of_union [ContinuousMul α] {S T: Set ℤ} {f: ℤ → α} (h: S ∩ T = ∅): MultipliableOnZ S f → MultipliableOnZ T f →
+    MultipliableOnZ (S ∪ T) f := λ ⟨s, hS⟩ ⟨t, hT⟩ ↦ ⟨s * t, HasProdOnZ.of_union h hS hT⟩
+
+@[to_additive]
+theorem MultipliableOnZ.of_union_iff {α: Type*} [CommGroup α] [TopologicalSpace α] [ContinuousMul α] [ContinuousDiv α] {S T: Set ℤ} {f: ℤ → α} (h: S ∩ T = ∅) (h_multipliable: MultipliableOnZ S f):
+    MultipliableOnZ (S ∪ T) f ↔ MultipliableOnZ T f := by
+  constructor
+  intro h_multipliable_union
+  rw [show T = (S ∪ T) \ S from Eq.symm (Set.union_diff_cancel_left (Set.subset_empty_iff.mpr h))]
+  obtain ⟨s, hs⟩ := h_multipliable
+  obtain ⟨st, hst⟩ := h_multipliable_union
+  use st / s
+  exact HasProdOnZ.of_sdiff Set.subset_union_left hst hs
+  exact λ hT ↦ MultipliableOnZ.of_union h h_multipliable hT
+
+@[to_additive]
+lemma eq_z_prod_of_mul_of_z_prod'_of_eval_zero {α: Type*} [CommGroup α] [TopologicalSpace α] [ContinuousMul α] [ContinuousDiv α] [T2Space α]
+    {f: ℤ → α} (h: MultipliableOnZ (⊤ \ {0}) f): ∏_ℤ k, f k = (∏_ℤ' k, f k) * f 0 := by
+  have h_union: ⊤ = ((⊤: Set ℤ) \ { 0 }) ∪ { 0 } := Eq.symm <| Set.diff_union_of_subset (λ _ _ ↦ trivial)
+  obtain ⟨a, ha⟩ := h
+  have h_prod := HasProdOnZ.of_union Set.diff_inter_self ha (HasProdOnZ.of_singleton f 0) 
+  rw [←ha.z_prod_eq] at h_prod
+  convert h_prod.z_prod_eq
+
+@[to_additive]
+lemma eq_z_prod_of_mul_of_z_prod'_of_eval_zero' {α: Type*} [CommGroup α] [TopologicalSpace α] [ContinuousMul α] [ContinuousDiv α] [T2Space α] 
+    {f: ℤ → α} (h: MultipliableOnZ ⊤ f): ∏_ℤ k, f k = (∏_ℤ' k, f k) * f 0 := by
+  rw [show ⊤ = {0} ∪ ((⊤: Set ℤ) \ {0}) by aesop] at h
+  apply eq_z_prod_of_mul_of_z_prod'_of_eval_zero
+  exact (MultipliableOnZ.of_union_iff (Set.inter_diff_self {0} ⊤) (MultipliableOnZ.of_singleton f 0)).mp h
