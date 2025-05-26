@@ -30,25 +30,28 @@ theorem delta_nonzero_on_upperHalfPlane (z : ℍ) : delta z ≠ 0 := by sorry
 
 lemma delta_slash_T: delta ∣[(12: ℤ)] ModularGroup.T = delta := by
   ext z
-  rw [SL_slash, slash_def, slash, ModularGroup.det_coe, ofReal_one, _root_.one_zpow, mul_one,
-      ←ModularGroup.sl_moeb, delta, eta_of_smul_T, mul_pow, ←Complex.exp_nat_mul,
-      Complex.exp_eq_one_iff.mpr, one_mul,
-      _root_.zpow_neg, mul_inv_eq_iff_eq_mul₀ (zpow_ne_zero _ <| z.denom_ne_zero _),
-      denom, ModularGroup.T
+  rw [SL_slash_apply, delta, eta_of_smul_T, mul_pow, ←delta]
+  rw [show cexp (π * Complex.I / 12) ^ 24 = 1 by
+    rw [←Complex.exp_nat_mul]
+    exact Complex.exp_eq_one_iff.mpr ⟨1, by ring⟩
   ]
-  unfold delta
-  simp
-  use 1; ring
+  simp [denom, ModularGroup.T]
 
 lemma delta_slash_S: delta ∣[(12: ℤ)] ModularGroup.S = delta := by
   ext z
-  rw [SL_slash, slash_def, slash, ModularGroup.det_coe, ofReal_one, _root_.one_zpow, mul_one,
-      _root_.zpow_neg, mul_inv_eq_iff_eq_mul₀ (zpow_ne_zero _ <| z.denom_ne_zero _),
-      delta, ←ModularGroup.sl_moeb, eta_of_smul_S, mul_pow, ←cpow_nat_mul,
+  rw [SL_slash_apply, delta, eta_of_smul_S, mul_pow, ←delta, ModularGroup.denom_S]
+  rw [show ((-Complex.I * z)^((1 : ℂ) / 2))^24 = z^(12 : ℤ) by
+    rw [←cpow_nat_mul]
+    norm_num
+    rw [Even.neg_pow (by decide), mul_pow] 
+    rw [show Complex.I^12 = 1 by calc
+      Complex.I^12 = (Complex.I^2)^6 := by ring
+      _ = (-1)^6 := by rw [I_sq]
+      _ = 1 := Even.neg_one_pow (Nat.even_iff.mpr rfl)
+    , one_mul]
+    rfl
   ]
-  norm_num
-  rw [Even.neg_pow (by decide), mul_pow, show Complex.I^12 = (Complex.I^2)^6 from by ring]
-  norm_num; rw [mul_comm]; rfl
+  rw [mul_comm, ←mul_assoc, ←zpow_add₀ (ne_zero z), neg_add_cancel, zpow_zero, one_mul]
 
 lemma delta_slash_apply (γ : SL(2, ℤ)) : delta ∣[(12: ℤ)] γ = delta := by
   have hγ: γ ∈ Subgroup.closure {ModularGroup.S, ModularGroup.T} := by
@@ -121,18 +124,17 @@ def delta_CF: CuspForm Γ(1) 12 where
 theorem slash_action_div_delta {m : ℤ} (f : SlashInvariantForm Γ(1) m) :
     ∀ γ ∈ Γ(1), (f.toFun / delta) ∣[m - 12] γ = f.toFun / delta := fun γ hγ ↦ by
   ext z
-  rw [SL_slash, slash_def, slash, ModularGroup.det_coe, ofReal_one, one_zpow, mul_one]
+  rw [SL_slash_apply]
   have h_sif_smul {m: ℤ} (f: SlashInvariantForm Γ(1) m) (γ: SL(2, ℤ)) (z: ℍ) :
-      f.toFun ((γ: GL(2, ℝ)⁺) • z) = (denom γ z)^m * f.toFun z := by
-    rw [show f.toFun z = (f.toFun ∣[m] γ) z from by rw [f.slash_action_eq' γ (mem_Gamma_one γ)]]
-    rw [SL_slash, slash_def, slash, ModularGroup.det_coe, ofReal_one, one_zpow, mul_one,
-        mul_comm, mul_assoc, zpow_neg_mul_zpow_self _ (z.denom_ne_zero _), mul_one]
+      f.toFun (γ • z) = (denom γ z)^m * f.toFun z := by
+    rw [show f.toFun z = (f.toFun ∣[m] γ) z by rw [f.slash_action_eq' γ (mem_Gamma_one γ)]]
+    rw [SL_slash_apply]
+    field_simp [zpow_ne_zero m <| denom_ne_zero γ z]
   repeat rw [show (f.toFun / delta) _ = (f.toFun _) / (delta_SIF.toFun _) from rfl]
   repeat rw [h_sif_smul]
   rw [show delta_SIF.toFun = delta by rfl, neg_sub, zpow_sub₀ (denom_ne_zero γ z)] 
   field_simp [denom_ne_zero γ z, zpow_ne_zero m (denom_ne_zero γ z),
-    zpow_ne_zero 12 (denom_ne_zero γ z), delta_nonzero_on_upperHalfPlane ((γ : ↥GL(2, ℝ)⁺) • z),
-    delta_nonzero_on_upperHalfPlane z]
+    zpow_ne_zero 12 (denom_ne_zero γ z), delta_nonzero_on_upperHalfPlane z]
   ring
 
 noncomputable
