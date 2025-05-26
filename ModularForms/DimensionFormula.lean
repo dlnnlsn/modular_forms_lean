@@ -3,9 +3,16 @@ import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Data.Int.Star
 import Mathlib.NumberTheory.ModularForms.LevelOne
+import Mathlib.NumberTheory.ModularForms.EisensteinSeries.Basic
+import ModularForms.CuspFormSubspace
+import ModularForms.EisensteinVanishingBehaviour
+import ModularForms.EisensteinEvenWeight
+
+
 --import ModularForms.Modular_Forms --temporary \ModularForms\Modular_Forms.lean
 
 open Complex ModularForm SlashInvariantForm CongruenceSubgroup Matrix MatrixGroups UpperHalfPlane
+open scoped DirectSum
 
 def levelOne_rank (k: ℤ): ℕ :=
   if k < 0 then 0
@@ -42,6 +49,135 @@ lemma levelOne_rank_zero_of_odd_weight {k: ℤ} (h_odd: Odd k): Module.rank ℂ 
 --Module.rank ℂ (ModularForm Γ(1) k) = Module.rank ℂ (Modular_Forms.CuspForm_Subspace Γ(1) k) + 1 := by
 --  rw [← rank_ModulaForm_equiv_prod hk a, rank_prod',add_comm, rank_eisensteinSubspace_one]
 --  rfl
+instance modformascuspform {k : ℤ}{f : ModularForm Γ(1) k} (vanishatcusp : (∀ (A : SL(2, ℤ)),
+IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A))) : CuspForm Γ(1) k where
+  toFun := f.toSlashInvariantForm
+  slash_action_eq' := f.slash_action_eq'
+  holo' := f.holo'
+  zero_at_infty' := vanishatcusp
+
+lemma subspacelemma {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
+(x : Subspace ℂ  (ModularForm Γ(1) k)) :
+x ≤ (Submodule.span ℂ {eisensteinSeries_MF hk a}) ↔
+∀ f ∈ x, ∃ c : ℂ, f = c • (eisensteinSeries_MF hk a) := sorry
+
+lemma subspacelemma2   {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
+(x : Subspace ℂ  (ModularForm Γ(1) k)) :
+x ≤ CuspForm_Subspace Γ(1) k ↔
+∀ f ∈ x, ∀ (A : SL(2, ℤ)), IsZeroAtImInfty (f ∣[k] A) := by
+  constructor
+  · intro h f h₁
+    have h₁ : f ∈ CuspForm_Subspace Γ(1) k := by apply h ; apply h₁
+    have h₂ : ∃ g : (CuspForm Γ(1) k), ((isom Γ(1) k).toFun g) = f := by
+      simp_all only [AddHom.toFun_eq_coe, LinearMap.coe_toAddHom, LinearEquiv.coe_coe]
+      exact h₁
+    obtain ⟨g, hg⟩ := h₂
+    rw [← hg]
+    convert g.zero_at_infty'
+  · intro h f h₁
+    have h₂ : f ∈ CuspForm_Subspace Γ(1) k := by
+        have h₂₁ : ∃ g : (CuspForm Γ(1) k), ((isom Γ(1) k).toFun g).1 = f := by
+          use modformascuspform (h f h₁)
+          rfl
+        apply h₂₁
+    apply h₂
+
+lemma EisensteinSeries_in_EisensteinSubspace {k : ℤ}(c : ℂ) (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
+c • (eisensteinSeries_MF hk a) ∈ Submodule.span ℂ {eisensteinSeries_MF hk a} := by
+simp_all only [PNat.val_ofNat]
+apply SMulMemClass.smul_mem
+apply SetLike.mem_of_subset
+· apply Submodule.subset_span
+· simp_all only [Set.mem_singleton_iff]
+
+lemma eisensteinSubspace_vanishing_is_zero  {k : ℤ}(hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
+(f : ModularForm Γ(1) k) (finEis : f ∈  Submodule.span ℂ {eisensteinSeries_MF hk a})
+(fvanishes : ∀ (A : SL(2, ℤ)), IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A)) : f = 0 := sorry
+
+theorem eisensteinSeries_comp_CuspForm {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
+IsCompl (Submodule.span ℂ {eisensteinSeries_MF (by linarith) a}) (CuspForm_Subspace Γ(1) k) := by
+  apply isCompl_iff.mpr
+  constructor
+  · unfold Disjoint
+    intro x h₁ h₂
+    rw [subspacelemma hk a] at h₁
+    rw [subspacelemma2 hk a] at h₂
+    intro f h₄
+    simp
+    have h₅ : ∃ c : ℂ, f = c • (eisensteinSeries_MF hk a) := by apply h₁ f; apply h₄
+    rcases h₅ with ⟨c, h₅⟩
+    have h₆ : ∀ (A : SL(2, ℤ)), IsZeroAtImInfty (f ∣[k] A) := by apply h₂ f; apply h₄
+    rw [h₅] at h₆
+    rw [h₅]
+    apply eisensteinSubspace_vanishing_is_zero hk a
+    apply EisensteinSeries_in_EisensteinSubspace c hk a
+    apply h₆
+  · unfold Codisjoint
+    intro x h₁ h₂ f h₃
+    by_cases h : (∀ (A : SL(2, ℤ)), IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A))
+    · have h₇ : f ∈ CuspForm_Subspace Γ(1) k := by
+        have h₇₁ : ∃ g : (CuspForm Γ(1) k), ((isom Γ(1) k).toFun g).1 = f := by
+          use modformascuspform h
+          rfl
+        apply h₇₁
+      simp_all only [PNat.val_ofNat, Submodule.span_singleton_le_iff_mem, Submodule.mem_top, SL_slash]
+      apply h₂
+      simp_all only
+    · have h₇ : f ∈ (Submodule.span ℂ {eisensteinSeries_MF hk a}) := by
+        sorry --This is important
+      simp_all only [PNat.val_ofNat, Submodule.span_singleton_le_iff_mem,
+      Submodule.mem_top, SL_slash, not_forall]
+      obtain ⟨w, h⟩ := h
+      apply h₇
+      simp_all only [Set.singleton_subset_iff, SetLike.mem_coe,
+      Set.mem_setOf_eq, Set.mem_range]
+      apply Exists.intro
+      · ext x_1 : 1
+        simp_all only [Set.mem_iInter, SetLike.mem_coe]
+        apply Iff.intro
+        intro a_1
+        on_goal 2 => {
+          intro a_1 «i»
+          exact a_1
+        }
+        simp_all only [forall_const]
+
+instance idℂ : ℂ ≃* ℂ where
+  toFun := fun z ↦ z
+  invFun := fun z ↦ z
+  left_inv := by tauto
+  right_inv := by tauto
+  map_mul' := by tauto
+
+lemma idinj : Function.Bijective idℂ := by apply idℂ.bijective
+#check MulEquiv.refl
+
+--« ;) »
+lemma rank_ModulaForm_equiv_prod {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
+Module.rank ℂ ((Submodule.span ℂ {eisensteinSeries_MF hk a}) × (CuspForm_Subspace Γ((1 : ℕ+)) k))
+= Module.rank ℂ (ModularForm Γ(↑1) k) := by
+  apply rank_eq_of_equiv_equiv idℂ (LinearEquiv.toAddEquiv (Submodule.prodEquivOfIsCompl
+  (Submodule.span ℂ {(eisensteinSeries_MF hk a : (ModularForm Γ((1 : ℕ+)) k))})
+  (CuspForm_Subspace Γ((1 : ℕ+)) k)  (eisensteinSeries_comp_CuspForm hk a) ) )
+  apply idinj
+  intro r m
+  simp [idℂ]
+
+lemma rank_eisensteinSubspace_one {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
+ Module.rank ℂ ↥(Submodule.span ℂ {eisensteinSeries_MF hk a}) = 1 := by
+  rw [rank_submodule_eq_one_iff]
+  use eisensteinSeries_MF hk a
+  constructor
+  · unfold Submodule.span
+    simp
+  constructor
+  · apply Eisenstein_series_not_zero
+  · tauto
+
+theorem dimen {k : ℤ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
+Module.rank ℂ (ModularForm Γ(1) k) = Module.rank ℂ (CuspForm_Subspace Γ(1) k) + 1 := by
+  rw [← rank_ModulaForm_equiv_prod hk a, rank_prod',add_comm, rank_eisensteinSubspace_one]
+  rfl
 
 lemma levelOne_rank_of_add_twelve (k: ℤ) (hk: k ≥ -9) (h_even: Even k):
   Module.rank ℂ (ModularForm Γ(1) (k + 12)) = Module.rank ℂ (ModularForm Γ(1) k) + 1 := by

@@ -812,9 +812,7 @@ lemma Eisenstein_series_not_zero {k : ℤ} {N : ℕ+} (hk : 3 ≤ k) (a : Fin 2 
   apply Eisenstein_series_ne_zero
   exact h₁
 
-
 theorem qExpansion_unique {f g : ModularForm Γ k} : qExpansion 1 f = qExpansion 1 g ↔ f = g := by sorry
-
 
 
 lemma Zeta_function_eq {k : ℕ} : ∑' (x : ℕ), (x + 1: ℂ) ^ (-(k : ℤ)) = - (2 * π * i) ^ k * (bernoulli' k) / (2 * Nat.factorial k) := by

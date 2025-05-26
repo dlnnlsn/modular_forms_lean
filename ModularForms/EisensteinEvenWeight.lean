@@ -6,15 +6,11 @@ import Mathlib.NumberTheory.ZetaValues
 import Mathlib.Analysis.Calculus.SmoothSeries
 import ModularForms.SpecialFunctions
 
-
-
 open EisensteinSeries CongruenceSubgroup
 open ModularForm Complex Filter UpperHalfPlane Function
 open ModularFormClass
 open Complex Topology Manifold
 open Classical
-
-
 
 open scoped Real MatrixGroups CongruenceSubgroup
 
@@ -563,13 +559,20 @@ theorem eisensteinSeries_eq_qExpansion' {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 �
   ext τ
   rw [eisensteinSeries_eq_qExpansion hk a keven mne0]
 
+
+
+/- The following code is for condesing all of the annoying constants -/
+
 noncomputable
-def OurEisensteinSeries (m : ℕ) (mne0 : m ≠ 0) (z : ℍ):=  2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
+def OurEisensteinSeries (m : ℕ) (mne0 : m ≠ 0) (z : ℍ):=
+2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
 (2*π*i)^ (2*m)* (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
-∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*z)
+∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1)
+* Complex.exp (2*π*i*(d + 1)*z)
 
 @[simp] --implicit instance better?
-lemma OurEisensteinSeriesDef (m : ℕ)(mne0 : m ≠ 0)(z : ℍ) : OurEisensteinSeries m mne0 z =
+lemma OurEisensteinSeriesDef (m : ℕ)(mne0 : m ≠ 0)(z : ℍ) :
+ OurEisensteinSeries m mne0 z =
  2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
 (2*π*i)^ (2*m)* (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
 ∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*z) := by rfl
@@ -606,8 +609,8 @@ rw [this]
 simp only [zpow_natCast]
 
 noncomputable
-def OurBernoulli (m : ℕ) (mne0 : m ≠ 0) := (-1 : ℝ) ^ (m + 1) * (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) *
-(bernoulli (2 * m)) / (Nat.factorial (2 * m))
+def OurBernoulli (m : ℕ) (mne0 : m ≠ 0) := (-1 : ℝ) ^ (m + 1) *
+ (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) * (bernoulli (2 * m)) / (Nat.factorial (2 * m))
 
 @[simp]
 lemma ourBernoulli_ne_zero (m : ℕ) (mne0 : m ≠ 0) : OurBernoulli m mne0 ≠ 0 := by sorry
@@ -655,6 +658,48 @@ fun z : ℍ => (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z) := by
   ext τ
   apply eisensteinSeries_normalised hk a keven
 
+noncomputable
+instance {m : ℕ}: Invertible (∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹) where
+  invOf := 1 / (∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹)
+  invOf_mul_self := by sorry
+   /- have : ∑' (b : ℕ), ((b : ℂ) ^ (2 * (m :ℤ )))⁻¹ = ∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m) := by ring_nf ; sorry
+    rw [this]
+    rw [HasSum.tsum_eq (hasSum_zeta_nat mne0)]
+    have :  (-1 : ℝ) ^ (m + 1) * (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) *
+(bernoulli (2 * m)) / (Nat.factorial (2 * m)) ≠ 0 := by rw [← OurBenoullidef m mne0] ; apply ourBernoulli_ne_zero m mne0
+    field_simp
+    ring_nf ; sorry-/
+  mul_invOf_self := sorry
+
+@[simp]
+lemma ourEisensteinSeries_normalised {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m ) (mne0 : m ≠ 0) (τ : ℍ) :
+ (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 τ) =
+ 2 +  (OurBernoulli m mne0)⁻¹ * (2 *
+(2*π*i)^ (2*m)) * (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
+∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1)
+* Complex.exp (2*π*i*(d + 1)*τ) := by
+simp only [OurEisensteinSeries]
+rw [mul_add]
+nth_rw 1 [OurBernoulli, ← sum_eq_sum_starting_at_one]
+rw [← HasSum.tsum_eq (hasSum_zeta_nat mne0)]
+have : (∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m))⁻¹ * (2 * ∑' (n : ℕ), (n :ℂ) ^ (-(2 * (m : ℤ)))) = 2 := by
+  have : ∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m) = ∑' (b : ℕ), 1 / (b : ℂ) ^ (2 * m) := by
+    push_cast ; congr
+  have : (∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m))⁻¹ = (∑' (b : ℕ), 1 / (b : ℂ) ^ (2 * m))⁻¹ := by
+    push_cast ; congr
+  rw [this]
+  simp_all only [ne_eq, one_div, ofReal_inv, zpow_neg]
+  rw [← mul_assoc,mul_comm, ← mul_assoc]
+  rw [← div_eq_mul_inv ((∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹))]
+  have : (∑' (b : ℕ), ((b : ℂ) ^ (2 * m))⁻¹) = (∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹) := by rfl
+  rw [this]
+  rw [div_self_of_invertible ((∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹))]
+  simp only [one_mul]
+rw [this]
+ring
+apply τ ; apply k ; apply mne0
+
 lemma eisenstein_sif_myqexpansion {k m : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
 (keven : k = 2 * m)(mne0 : m ≠ 0) {z : ℍ}:
   eisensteinSeries_SIF a k z =  (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z):= by
@@ -674,10 +719,4 @@ lemma eisensteinSeries_MF_is {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → Z
   rw [this]
   apply eisenstein_sif_myqexpansion (by linarith) a keven mne0
 
-
-lemma test : 1 = 1 := by rfl
---why are you building this???
-
-
-
---#min_imports
+#min_imports
