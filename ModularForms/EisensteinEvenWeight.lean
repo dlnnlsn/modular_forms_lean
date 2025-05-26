@@ -4,16 +4,13 @@ import Mathlib.NumberTheory.ModularForms.EisensteinSeries.Basic
 import Mathlib.Topology.MetricSpace.Polish
 import Mathlib.NumberTheory.ZetaValues
 import Mathlib.Analysis.Calculus.SmoothSeries
-
-
+import ModularForms.SpecialFunctions
 
 open EisensteinSeries CongruenceSubgroup
 open ModularForm Complex Filter UpperHalfPlane Function
 open ModularFormClass
 open Complex Topology Manifold
 open Classical
-
-
 
 open scoped Real MatrixGroups CongruenceSubgroup
 
@@ -23,7 +20,7 @@ variable {z : ℍ}
 
 local notation "I∞" => comap Complex.im atTop
 local notation "𝕢" => Periodic.qParam
-notation "i" => Complex.I
+local notation "i" => Complex.I
 
 instance fintoprod : (Fin 2 → ℤ) ≃ ℤ × ℤ where
   toFun := fun v => (v 0, v 1)
@@ -271,7 +268,6 @@ lemma eisensteinseries_splitoff_zeta_fun {k : ℕ} (a : Fin 2 → ZMod (1:ℕ+))
  ext τ
  rw [eisensteinseries_splitoff_zeta]
 
-#check hasSum_zeta_nat
 lemma DoubleSUm_relatesto_Bernoulli {k m: ℕ} (a : Fin 2 → ZMod (1:ℕ+)) (keven : k = 2 * m) (mne0 : m ≠ 0):
 ∑' x : {x : ℤ × ℤ | x ≠ 0}, (x.1.1 * (z : ℂ) + x.1.2) ^ (- k : ℤ ) =
    ((-1 : ℝ) ^ (k / 2 + 1) * (2 : ℝ) ^ (k - 1) * π ^ (k) *
@@ -442,70 +438,6 @@ lemma eisensteinSeries_expand {k m: ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:�
     simp_all only [ne_eq, mul_eq_zero, OfNat.ofNat_ne_zero, or_self, not_false_eq_true]
   · subst keven
     simp_all only [ne_eq, mul_eq_zero, OfNat.ofNat_ne_zero, or_self, not_false_eq_true]
-/-
-theorem cotagent_Formula_HasSum: HasSum (fun (n : ℕ) => 1 / ((z : ℂ) -
-(n + 1)) + 1 / ((z : ℂ) + (n + 1))) (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by
-  sorry
-
-theorem cotagent_formula : ∑' (n : ℕ), (1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) = (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by
-  convert HasSum.tsum_eq cotagent_Formula_HasSum
-
-lemma cotagent_as_exp : (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) =
-π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by sorry
-
-lemma cotagent_as_exp1 :  π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) =
-- π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by sorry
-
-lemma cotagent_as_exp2 : - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) =
-- π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by sorry
--/
-lemma cotagent_as_exp3 : (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ))  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by
-  sorry --calc
-  --  (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) = π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by apply cotagent_as_exp
-  --  _  = - π * i - 2 * π * i * cexp (2 * π * i * z) /(1 -  cexp (2 * π * i * z) ) := by apply cotagent_as_exp1
-  --  _  = - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by apply cotagent_as_exp2
-
--- ## Dylan's code
-theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
-    π * cot (π * z) = 1/z + ∑' k : ℕ, (1/(z + (k + 1)) + 1/(z - (k + 1))) := by sorry
-
--- ## deriv_pow
---DELETE I THINK
-lemma rw_of_cotangent_base_case :
- ∑' x : ℤ, ((z:ℂ) + (x : ℂ))^(- 2 : ℤ) =
- (2*π*i)^ 2* ∑' d : ℕ, (d + 1) * Complex.exp (2*π*i*(d + 1)*z) := by
- sorry --completed by Dylan already
- /-
-  have h : ∀ z : ℍ, ∑' (n : ℕ), (1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) = (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by intro τ ; convert cotagent_formula
-  symm
-  simp_rw [cotagent_as_exp3] at h
-  have h₁ : ∀ z : ℍ, HasDerivAt (fun τ : ℂ => -π *i) 0 z := by sorry
-  have h₂ {d : ℤ} : ∀ z : ℍ, HasDerivAt (fun z => 2 * π * i * (d + 1) * (z : ℂ))
-    (2 * π * i * (d + 1)) z := by
-    intro τ
-    simp_rw [mul_comm ( 2 * ↑π * i * (d + 1))]
-    apply hasDerivAt_mul_const ( 2 * ↑π * i * (d + 1))
-  have h₂₁ {d : ℤ} : ∀ z : ℍ,HasDerivAt (fun z => cexp (2 * ↑π * i * (d + 1) * (z : ℂ)))
-    ( cexp (2 * ↑π * i * (d + 1) * (z : ℂ)) * (2 * ↑π * i * (d + 1))) z := by
-    intro τ
-    apply HasDerivAt.cexp (h₂ τ)
-  have h₃ {d : ℤ} : ∀ z : ℂ,HasDerivAt (fun z =>  2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (ofComplex z))) ((2 * ↑π * i) ^ 2 * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (ofComplex z : ℂ))) z := by sorry
-  have h₄ {d : ℤ} : ∀ z : ℂ,HasDerivAt (fun z => (1 / ((z : ℂ)))) (1 / (z : ℂ) ^ 2) z := by sorry
-  have h₅ : ∀ z : ℂ, HasDerivAt (fun z  => ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)))) (∑' (n : ℕ), (1 / ((ofComplex z : ℂ) + (↑n + 1)) ^ 2)) z := by sorry
-  have h₆ : ∀ z : ℍ, HasDerivAt (fun z =>  ∑' (n : ℕ), (1 / ((z : ℂ) - (↑n + 1)) + 1 / ((z : ℂ) + (↑n + 1)))) (- ∑' (n : ℤ), (1 / ((z : ℂ) + (↑n))^2)) z := by sorry
-  have h₇ : ∀ z : ℍ, HasDerivAt (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * (z : ℂ ))) (- (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * ↑z)) z := by sorry
-  have h₈ : ∀ z : ℍ, deriv (fun z  => ∑' (n : ℕ), (1 / ((ofComplex z : ℂ) - (↑n + 1)) + 1 / ((ofComplex z : ℂ) + (↑n + 1)))) z =
-  deriv (fun z => -↑π * i - 2 * ↑π * i * ∑' (d : ℕ), cexp (2 * ↑π * i * (↑d + 1) * ↑(ofComplex z : ℂ))) z := by intro τ; congr; ext τ₁ ; simp_rw [h (ofComplex τ₁)]
-  have h₉ : - ∑' (n : ℤ), (1 / ((z : ℂ) + (↑n))^2) = - (2 * ↑π * i) ^ 2 * ∑' (d : ℕ), (d + 1) * cexp (2 * ↑π * i * (↑d + 1) * z) := by rw [deriv_eq h₆] at h₈ ; symm ; rw [deriv_eq h₇] at h₈ ; simp only [ofComplex_apply] at h₈ ; rw [h₈]
-  rw [neg_mul,neg_inj] at h₉
-  simp_all only [one_div, neg_mul, forall_const, differentiableAt_const, zpow_neg]
-  symm
-  rw [← h₉]
-  norm_cast
--/
-
-lemma cotangent_dirichlet_expansion''  (z : ℍ) : (π * cot (π * z) - 1 / (z : ℂ))  =
- - π * i - 2 * π *i * ∑'(d : ℕ), cexp (2 * π * i * (d + 1) *z) := by sorry --already in special functions
 
 lemma cotagent_derivative_formula {k : ℕ} (hk : 2 ≤ k) :
 ∀ z : ℍ, ((k - 1).factorial) * ∑' x : ℤ, 1/((z:ℂ) + (x : ℂ))^((k: ℤ)) =
@@ -627,13 +559,20 @@ theorem eisensteinSeries_eq_qExpansion' {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 �
   ext τ
   rw [eisensteinSeries_eq_qExpansion hk a keven mne0]
 
+
+
+/- The following code is for condesing all of the annoying constants -/
+
 noncomputable
-def OurEisensteinSeries (m : ℕ) (mne0 : m ≠ 0) (z : ℍ):=  2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
+def OurEisensteinSeries (m : ℕ) (mne0 : m ≠ 0) (z : ℍ):=
+2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
 (2*π*i)^ (2*m)* (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
-∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*z)
+∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1)
+* Complex.exp (2*π*i*(d + 1)*z)
 
 @[simp] --implicit instance better?
-lemma OurEisensteinSeriesDef (m : ℕ)(mne0 : m ≠ 0)(z : ℍ) : OurEisensteinSeries m mne0 z =
+lemma OurEisensteinSeriesDef (m : ℕ)(mne0 : m ≠ 0)(z : ℍ) :
+ OurEisensteinSeries m mne0 z =
  2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(2 * m : ℤ)) + 2*
 (2*π*i)^ (2*m)* (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
 ∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1) * Complex.exp (2*π*i*(d + 1)*z) := by rfl
@@ -670,8 +609,8 @@ rw [this]
 simp only [zpow_natCast]
 
 noncomputable
-def OurBernoulli (m : ℕ) (mne0 : m ≠ 0) := (-1 : ℝ) ^ (m + 1) * (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) *
-(bernoulli (2 * m)) / (Nat.factorial (2 * m))
+def OurBernoulli (m : ℕ) (mne0 : m ≠ 0) := (-1 : ℝ) ^ (m + 1) *
+ (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) * (bernoulli (2 * m)) / (Nat.factorial (2 * m))
 
 @[simp]
 lemma ourBernoulli_ne_zero (m : ℕ) (mne0 : m ≠ 0) : OurBernoulli m mne0 ≠ 0 := by sorry
@@ -719,6 +658,48 @@ fun z : ℍ => (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z) := by
   ext τ
   apply eisensteinSeries_normalised hk a keven
 
+noncomputable
+instance {m : ℕ}: Invertible (∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹) where
+  invOf := 1 / (∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹)
+  invOf_mul_self := by sorry
+   /- have : ∑' (b : ℕ), ((b : ℂ) ^ (2 * (m :ℤ )))⁻¹ = ∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m) := by ring_nf ; sorry
+    rw [this]
+    rw [HasSum.tsum_eq (hasSum_zeta_nat mne0)]
+    have :  (-1 : ℝ) ^ (m + 1) * (2 : ℝ) ^ (2 * m - 1) * π ^ (2 * m) *
+(bernoulli (2 * m)) / (Nat.factorial (2 * m)) ≠ 0 := by rw [← OurBenoullidef m mne0] ; apply ourBernoulli_ne_zero m mne0
+    field_simp
+    ring_nf ; sorry-/
+  mul_invOf_self := sorry
+
+@[simp]
+lemma ourEisensteinSeries_normalised {k m: ℕ } (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
+(keven : k = 2 * m ) (mne0 : m ≠ 0) (τ : ℍ) :
+ (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 τ) =
+ 2 +  (OurBernoulli m mne0)⁻¹ * (2 *
+(2*π*i)^ (2*m)) * (Nat.factorial (2 *m-1))^(-(1:ℤ)) * ∑' d : ℕ,
+∑' m_1 : {s : ℕ | (s + 1) ∣ (d + 1)}, (m_1 + 1)^(2 * (m : ℤ) - 1)
+* Complex.exp (2*π*i*(d + 1)*τ) := by
+simp only [OurEisensteinSeries]
+rw [mul_add]
+nth_rw 1 [OurBernoulli, ← sum_eq_sum_starting_at_one]
+rw [← HasSum.tsum_eq (hasSum_zeta_nat mne0)]
+have : (∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m))⁻¹ * (2 * ∑' (n : ℕ), (n :ℂ) ^ (-(2 * (m : ℤ)))) = 2 := by
+  have : ∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m) = ∑' (b : ℕ), 1 / (b : ℂ) ^ (2 * m) := by
+    push_cast ; congr
+  have : (∑' (b : ℕ), 1 / (b : ℝ) ^ (2 * m))⁻¹ = (∑' (b : ℕ), 1 / (b : ℂ) ^ (2 * m))⁻¹ := by
+    push_cast ; congr
+  rw [this]
+  simp_all only [ne_eq, one_div, ofReal_inv, zpow_neg]
+  rw [← mul_assoc,mul_comm, ← mul_assoc]
+  rw [← div_eq_mul_inv ((∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹))]
+  have : (∑' (b : ℕ), ((b : ℂ) ^ (2 * m))⁻¹) = (∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹) := by rfl
+  rw [this]
+  rw [div_self_of_invertible ((∑' (n : ℕ), ((n : ℂ) ^ (2 * (m :ℤ )))⁻¹))]
+  simp only [one_mul]
+rw [this]
+ring
+apply τ ; apply k ; apply mne0
+
 lemma eisenstein_sif_myqexpansion {k m : ℕ} (hk : 3 ≤ k) (a : Fin 2 → ZMod (1:ℕ+))
 (keven : k = 2 * m)(mne0 : m ≠ 0) {z : ℍ}:
   eisensteinSeries_SIF a k z =  (OurBernoulli m mne0)⁻¹ * (OurEisensteinSeries m mne0 z):= by
@@ -738,9 +719,4 @@ lemma eisensteinSeries_MF_is {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → Z
   rw [this]
   apply eisenstein_sif_myqexpansion (by linarith) a keven mne0
 
-
-
-
-
-
---#min_imports
+#min_imports

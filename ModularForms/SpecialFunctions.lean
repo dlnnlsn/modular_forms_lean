@@ -217,7 +217,7 @@ theorem cotangent_expansion_H (z: ℍ): π * cot (π * z) = 1/z + ∑' k: ℕ, (
     exact (lt_self_iff_false 0).mp <| lt_of_lt_of_eq (im_pos z) heq
   exact cotangent_expansion z h_non_int
 
-notation "i" => Complex.I
+local notation "i" => Complex.I
 lemma cotagent_as_exp {z : ℍ}: (π * cot (π * z) - 1 / (z : ℂ)) =
 π * i * (cexp (π * i * z) + cexp (- π * i * z)) / (cexp (π * i * z) - cexp (-π * i * z)) := by rw [Complex.cot_pi_eq_exp_ratio] ; field_simp ; ring_nf ; sorry
 

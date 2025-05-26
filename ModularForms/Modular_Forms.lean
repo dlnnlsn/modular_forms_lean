@@ -24,7 +24,7 @@ variable {z : ℍ}
 
 local notation "I∞" => comap Complex.im atTop
 local notation "𝕢" => Periodic.qParam
-notation "i" => Complex.I
+local notation "i" => Complex.I
 
 
 
@@ -471,9 +471,8 @@ eisensteinSeries a k  = fun z:ℍ ↦ 2 * ∑' x : ℕ, ((x : ℂ) + 1) ^(-(k:�
   ext z
   unfold eisensteinSeries eisSummand
   simp_all only [PNat.val_ofNat, Fin.isValue, zpow_neg, zpow_natCast]
-  rw [gammaset_equiv]
-  simp only [fintoprod]
-  sorry
+  --rw [gammaset_equiv]
+  --simp only [fintoprod]
   sorry
 
 theorem cotagent_Formula_HasSum: HasSum (fun (n : ℕ) => 1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by
@@ -508,6 +507,8 @@ theorem cotangent_expansion (z : ℂ) (h : ∀ n : ℤ, z ≠ n) :
 lemma rw_of_cotangent_base_case :
  ∑' x : ℤ, ((z:ℂ) + (x : ℂ))^(- 2 : ℤ) =
  (2*π*i)^ 2* ∑' d : ℕ, (d + 1) * Complex.exp (2*π*i*(d + 1)*z) := by
+  sorry
+  /-
   have h : ∀ z : ℍ, ∑' (n : ℕ), (1 / ((z : ℂ) - (n + 1)) + 1 / ((z : ℂ) + (n + 1))) = (π * cos (π * z)/ sin (π * z) - 1 / (z : ℂ)) := by intro τ ; convert cotagent_formula
   symm
   simp_rw [cotagent_as_exp3] at h
@@ -534,6 +535,7 @@ lemma rw_of_cotangent_base_case :
   symm
   rw [← h₉]
   norm_cast
+-/
 
 lemma cotagent_derivative_formula {k : ℕ} (hk : 2 ≤ k) :  ∀ z : ℍ, ((k - 1).factorial) * ∑' x : ℤ, 1/((z:ℂ) + (x : ℂ))^((k: ℤ)) =  (2*π*i)^ k * ∑' d : ℕ, (d + 1) ^ (k - 1) * Complex.exp (2*π*i*(d + 1)*z) := by
   induction' k with l ih
@@ -674,12 +676,14 @@ instance CuspForm_Subspace (Γ : Subgroup SL(2, ℤ)) (k : ℤ): Submodule ℂ (
     rcases h with ⟨g, h₁⟩; use (c • g)
     simp ; rw [h₁]
 
+@[simp]
 lemma coee {f : CuspForm Γ k} :
 coe_Hom f ∈ CuspForm_Subspace Γ k := by tauto
 
-#check Classical.choose
+@[simp]
 lemma coe_hom_inj {f g : CuspForm Γ k} : (coe_Hom f = coe_Hom g) → f = g  := by intro h ; unfold coe_Hom coe_Hom' at *; sorry
 
+@[simp]
 lemma coe_hom_surj (f : ModularForm Γ k) (finCuspSub : f ∈ (CuspForm_Subspace Γ k)) :
 ∃ g : CuspForm Γ k, f = coe_Hom g := by
   have finCuspSub: f ∈ Set.range coe_Hom := by tauto
@@ -695,8 +699,41 @@ lemma coe_hom_surj (f : ModularForm Γ k) (finCuspSub : f ∈ (CuspForm_Subspace
   use a
   tauto
 
-open Classical
 
+theorem CuspForm_Subspace_zeroatinfty {f : CuspForm_Subspace Γ k} : ∀ (A : SL(2, ℤ)), IsZeroAtImInfty (toSlashInvariantForm f.1 ∣[k] A)  := by
+  have :  ∃ (g : CuspForm Γ k), f = coe_Hom g := by
+    simp only [SetLike.coe_mem, coe_hom_surj]
+  obtain ⟨g, h⟩ := this
+  rw [h]
+  have : ∀ (A : SL(2, ℤ)), IsZeroAtImInfty (CuspForm.toSlashInvariantForm g ∣[k] A) := by apply g.zero_at_infty'
+  exact fun A ↦ this A
+
+theorem CuspForm_Subspace_MDifferentiable {f : CuspForm_Subspace Γ k} :
+MDifferentiable 𝓘(ℂ, ℂ) 𝓘(ℂ, ℂ) (toSlashInvariantForm f.1) := by
+have :  ∃ (g : CuspForm Γ k), f = coe_Hom g := by
+    simp only [SetLike.coe_mem, coe_hom_surj]
+obtain ⟨g, h⟩ := this
+rw [h]
+have : MDifferentiable 𝓘(ℂ, ℂ) 𝓘(ℂ, ℂ) (CuspForm.toSlashInvariantForm g)  := by apply g.holo'
+exact fun A ↦ this A
+
+def Coe_Hom_inv : CuspForm_Subspace Γ k → CuspForm Γ k :=
+fun f => CuspForm.mk f (CuspForm_Subspace_MDifferentiable) (CuspForm_Subspace_zeroatinfty)
+
+noncomputable
+instance isom (Γ : Subgroup SL(2, ℤ)) (k : ℤ) :
+  (CuspForm Γ k) ≃ₗ[ℂ] CuspForm_Subspace Γ k where
+    toFun := fun f => ⟨coe_Hom f , coee⟩
+    map_add' := by intro x y; tauto
+    map_smul' := by intro c x ; tauto
+    invFun := Coe_Hom_inv
+    left_inv := by
+      intro x; dsimp;
+      rfl
+    right_inv := by
+      intro x; dsimp;
+      rfl
+/-
 noncomputable
 instance isom (Γ : Subgroup SL(2, ℤ)) (k : ℤ) :
   (CuspForm Γ k) ≃ₗ[ℂ] CuspForm_Subspace Γ k where
@@ -705,24 +742,21 @@ instance isom (Γ : Subgroup SL(2, ℤ)) (k : ℤ) :
     map_smul' := by intro c x ; tauto
     invFun := fun ⟨f,finCusp⟩ => Exists.choose (coe_hom_surj f finCusp)
     left_inv := by
-      intro x; simp;
+      intro x; dsimp;
       convert Classical.choose_eq _  ; constructor ;
       intro h₁ ; apply coe_hom_inj ; symm ; apply h₁
       intro h₁ ; rw [h₁]
     right_inv := by
-      intro x ; simp
+      intro x ; dsimp
       obtain ⟨val, property⟩ := x
       simp_all only [Subtype.mk.injEq]
-
-
+      convert Exists.choose_spec _
+      simp
+-/
+      --(coe_hom_surj val property)
       --convert Classical.choose_eq _
       --simp
       --rw [Classical.choose_eq val]
-      convert Classical.choose_eq _ ; simp ;
-      refine ModularForm.ext_iff.mpr ?_
-      intro τ
-
-      sorry
 
 -- ## Back to Eisenstein series
 
@@ -778,9 +812,7 @@ lemma Eisenstein_series_not_zero {k : ℤ} {N : ℕ+} (hk : 3 ≤ k) (a : Fin 2 
   apply Eisenstein_series_ne_zero
   exact h₁
 
-
 theorem qExpansion_unique {f g : ModularForm Γ k} : qExpansion 1 f = qExpansion 1 g ↔ f = g := by sorry
-
 
 
 lemma Zeta_function_eq {k : ℕ} : ∑' (x : ℕ), (x + 1: ℂ) ^ (-(k : ℤ)) = - (2 * π * i) ^ k * (bernoulli' k) / (2 * Nat.factorial k) := by
@@ -1119,6 +1151,7 @@ lemma coeffzeroagree {z : ℍ} {k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 →
     rw [Summable.tsum_eq_zero_add (eisensteincoeff_isSummable (𝕢 1 z) hk a keven)] at h
     simp_rw [← smul_eq_mul] at h
     rw [Summable.tsum_eq_zero_add (qexpansioneisensteincoeff_isSummable (𝕢 1 z) hk a keven) ] at h
+    sorry
 
 lemma cuspfunctioneisensteinastsum {q : ℂ}{k m : ℕ} (hk : 3 ≤ (k : ℤ)) (a : Fin 2 → ZMod (1 : ℕ+))(keven : k = 2 * m) (qnorm : ‖q‖ < 1) :
 cuspFunction 1 (⇑(eisensteinSeries_MF hk a) ∘ ↑ofComplex) q =  ∑' (n : ℕ), (qExpansion 1 (eisensteinSeries_MF hk a)).coeff ℂ 0 *  q ^ n := by
@@ -1442,8 +1475,6 @@ apply SetLike.mem_of_subset
 lemma eisensteinSubspace_vanishing_is_zero (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+))
 (f : ModularForm Γ(1) k) (finEis : f ∈  Submodule.span ℂ {eisensteinSeries_MF hk a})
 (fvanishes : ∀ (A : SL(2, ℤ)), IsZeroAtImInfty ((f : ModularForm Γ(1) k) ∣[k] A)) : f = 0 := sorry
-
-
 
 theorem eisensteinSeries_comp_CuspForm (hk : 3 ≤ k) (a : Fin 2 → ZMod (1 : ℕ+)) :
 IsCompl (Submodule.span ℂ {eisensteinSeries_MF hk a}) (CuspForm_Subspace Γ(1) k) := by
